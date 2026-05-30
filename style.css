@@ -703,11 +703,61 @@ h1, h2, h3, h4, .clock-widget, .logo-text h1 {
 
 /* Przyciski Promptera AI */
 .ai-prompter-actions {
-    display: grid;
-    grid-template-columns: 1fr auto;
+    display: flex;
+    flex-direction: column;
     gap: 12px;
     border-top: 1px solid rgba(13, 148, 136, 0.08);
     padding-top: 20px;
+}
+
+body.dark-theme .ai-prompter-actions {
+    border-top-color: rgba(255, 255, 255, 0.06);
+}
+
+.ai-role-selector-container {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+}
+
+.ai-role-selector-container label {
+    font-size: 0.8rem;
+    font-weight: 700;
+    color: var(--text-secondary);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.ai-role-selector-container select {
+    padding: 8px 12px;
+    background: #fcfdfd;
+    border: 1px solid rgba(13, 148, 136, 0.15);
+    border-radius: 8px;
+    font-family: inherit;
+    font-size: 0.82rem;
+    color: var(--text-primary);
+    font-weight: 600;
+    outline: none;
+    transition: var(--transition-normal);
+}
+
+.ai-role-selector-container select:focus {
+    border-color: var(--color-accent);
+    box-shadow: 0 0 0 2px rgba(13, 148, 136, 0.06);
+}
+
+body.dark-theme .ai-role-selector-container select {
+    background: rgba(0, 0, 0, 0.35);
+    border-color: rgba(255, 255, 255, 0.08);
+    color: #ffffff;
+}
+
+.ai-buttons-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
 }
 
 .btn-ai-prompt {

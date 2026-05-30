@@ -93,6 +93,7 @@ const btnPModalLaunch = document.getElementById("btn-p-modal-launch");
 const pModalNotes = document.getElementById("p-modal-notes");
 const pNotesSaveStatus = document.getElementById("p-notes-save-status");
 const btnGeneratePrompt = document.getElementById("btn-generate-prompt");
+const aiRoleSelect = document.getElementById("ai-role-select");
 
 // Theme Toggle
 const btnThemeToggle = document.getElementById("btn-theme-toggle");
@@ -436,7 +437,7 @@ if (pModalNotes) {
     });
 }
 
-// GENERATOR PROMPTÓW CHATGPT
+// GENERATOR PROMPTÓW CHATGPT Z WYBOREM ROLI EKSPERCKIEJ (WORKSPACE 2.5)
 if (btnGeneratePrompt) {
     btnGeneratePrompt.addEventListener("click", () => {
         if (!activeProjectId) return;
@@ -451,23 +452,153 @@ if (btnGeneratePrompt) {
             return;
         }
 
-        const promptText = `Jesteś wybitnym inżynierem oprogramowania i architektem IT. Zwracam się z prośbą o pomoc w wdrożeniu poprawek, naprawie błędów oraz rozwoju mojej aplikacji: ${app.name} (Adres URL projektu: ${app.url}).
+        const role = aiRoleSelect ? aiRoleSelect.value : "developer";
+        let promptText = "";
+        let roleTitle = "";
 
-Oto lista uwag, błędów do naprawienia oraz planowanych funkcji z mojego notatnika projektowego:
----
+        if (role === "developer") {
+            roleTitle = "Senior Developer & Architekt Oprogramowania 💻";
+            promptText = `Jesteś wybitnym Senior Developerem i Architektem IT. Zwracam się z prośbą o pomoc w wdrożeniu poprawek, optymalizacji oraz rozwoju mojej aplikacji.
+
+<project_context>
+  <name>${app.name}</name>
+  <url>${app.url}</url>
+  <assigned_role>${roleTitle}</assigned_role>
+</project_context>
+
+Oto ustrukturyzowana lista uwag, błędów do naprawienia oraz planowanych funkcji z mojego notatnika projektowego:
+<developer_notes>
 ${notesText}
----
+</developer_notes>
 
-Proszę Cię o szczegółową analizę każdego z powyższych punktów i przygotowanie:
-1. Ustrukturyzowanego planu działania krok-po-kroku (Action Plan) uporządkowanego od kwestii krytycznych po detale wizualne.
-2. Zaproponowanie gotowych, zoptymalizowanych rozwiązań technicznych, architektury kodu, wskazówek implementacyjnych oraz konkretnych fragmentów kodu w celach refaktoryzacji, które pomogą mi zaimplementować te poprawki w najprostszy i najbardziej bezawaryjny sposób.`;
+Proszę Cię o dogłębną analizę techniczną i przygotowanie:
+1. Szczegółowego planu działania krok-po-kroku (Action Plan) uporządkowanego od krytycznych poprawek po drobne optymalizacje.
+2. Gotowych, zoptymalizowanych rozwiązań technicznych, czystego kodu oraz wzorców projektowych. Zaproponuj konkretne fragmenty zoptymalizowanego kodu w celach refaktoryzacji.
+3. Wskazówek dotyczących optymalizacji wydajności i bezpieczeństwa w kontekście zgłoszonych uwag.`;
+        } else if (role === "designer") {
+            roleTitle = "Ekspert UX/UI Designer 🎨";
+            promptText = `Jesteś wybitnym ekspertem UX/UI Designerem, specjalizującym się w ergonomii interfejsów, użyteczności oraz nowoczesnych trendach wizualnych. Pomóż mi zaprojektować ulepszenia i dopracować moją aplikację.
+
+<project_context>
+  <name>${app.name}</name>
+  <url>${app.url}</url>
+  <assigned_role>${roleTitle}</assigned_role>
+</project_context>
+
+Oto moje notatki dotyczące uwag wizualnych i funkcjonalnych:
+<designer_notes>
+${notesText}
+</designer_notes>
+
+Proszę Cię o ekspercką analizę i przygotowanie:
+1. Oceny zgłoszonych kwestii pod kątem heurystyk użyteczności Nielsena oraz ergonomii interfejsu (Visual & Interaction Design).
+2. Szczegółowych propozycji poprawek wizualnych (propozycje harmonijnych palet kolorów, typografii, doboru marginesów, paddingów i układu elementów).
+3. Pomysłów na nowoczesne mikro-animacje oraz ulepszenia CSS transition/hover, które sprawią, że aplikacja będzie sprawiać wrażenie niezwykle premium.`;
+        } else if (role === "qa") {
+            roleTitle = "Senior QA Engineer & Lider Testów 🧪";
+            promptText = `Jesteś niezwykle skrupulatnym Senior QA Engineerem i Liderem Zapewnienia Jakości. Pomóż mi przeanalizować poprawki pod kątem stabilności i przygotować plan testowy dla mojej aplikacji.
+
+<project_context>
+  <name>${app.name}</name>
+  <url>${app.url}</url>
+  <assigned_role>${roleTitle}</assigned_role>
+</project_context>
+
+Oto notatki z planowanymi zmianami i błędami, które musimy przetestować:
+<qa_notes>
+${notesText}
+</qa_notes>
+
+Proszę Cię o przygotowanie profesjonalnej analizy jakościowej:
+1. Szczegółowego zestawu scenariuszy testowych (Test Cases) z podziałem na przypadki pozytywne (happy path), negatywne oraz przypadki brzegowe (edge cases).
+2. Wskazanie potencjalnych punktów awarii (Single Points of Failure) oraz ukrytych podatności systemu związanych z wprowadzanymi poprawkami.
+3. Gotowych szablonów skryptów testów automatycznych (np. w Playwright lub Cypress), które pomogą mi zautomatyzować weryfikację tych poprawek.`;
+        } else if (role === "writer") {
+            roleTitle = "Technical Writer & Specjalista UX Writer ✍️";
+            promptText = `Jesteś doświadczonym Technical Writerem oraz ekspertem UX Writing (mikrocopy). Pomóż mi opisać zmiany i stworzyć doskonałą dokumentację oraz komunikację w aplikacji.
+
+<project_context>
+  <name>${app.name}</name>
+  <url>${app.url}</url>
+  <assigned_role>${roleTitle}</assigned_role>
+</project_context>
+
+Oto lista uwag i wdrożonych funkcjonalności, które wymagają opisania:
+<writer_notes>
+${notesText}
+</writer_notes>
+
+Proszę Cię o przygotowanie materiałów dokumentacyjnych:
+1. Ustrukturyzowanego changelogu (Rejestru Zmian) gotowego do wklejenia do pliku CHANGELOG.md lub sekcji aktualizacji.
+2. Precyzyjnych propozycji komunikatów w aplikacji (np. microcopy dla przycisków, powiadomień toast, komunikatów o błędach), dbając o idealny ton komunikacji (Tone of Voice).
+3. Skróconej instrukcji dla użytkownika końcowego (Quick Start Guide) opisującej nowo dodane/poprawione funkcje.`;
+        }
 
         navigator.clipboard.writeText(promptText).then(() => {
-            showToast("Skopiowano prompt dla ChatGPT do schowka! 🤖📋");
+            showToast(`Skopiowano prompt dla roli: ${roleTitle}! 🤖📋`);
         }).catch(err => {
             showToast("Nie udało się skopiować promptu.");
         });
     });
+}
+
+// -------------------------------------------------------------
+// STANDARD AI-SYNC (IMPORT / EXPORT KONFIGURACJI JSON)
+// -------------------------------------------------------------
+function exportConfiguration() {
+    try {
+        const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(apps, null, 4));
+        const downloadAnchor = document.createElement('a');
+        downloadAnchor.setAttribute("href", dataStr);
+        downloadAnchor.setAttribute("download", `kuba_launchpad_config_${new Date().toISOString().slice(0,10)}.json`);
+        document.body.appendChild(downloadAnchor);
+        downloadAnchor.click();
+        downloadAnchor.remove();
+        showToast("Wyeksportowano konfigurację jako plik JSON! 📤");
+    } catch (e) {
+        showToast("Błąd podczas eksportu konfiguracji.");
+    }
+}
+
+function importConfiguration() {
+    const fileInput = document.createElement('input');
+    fileInput.type = 'file';
+    fileInput.accept = '.json';
+    fileInput.onchange = e => {
+        const file = e.target.files[0];
+        if (!file) return;
+        
+        const reader = new FileReader();
+        reader.readAsText(file, 'UTF-8');
+        reader.onload = readerEvent => {
+            try {
+                const importedApps = JSON.parse(readerEvent.target.result);
+                if (!Array.isArray(importedApps)) {
+                    throw new Error("Wczytany plik nie zawiera poprawnej struktury (musi być tablicą)!");
+                }
+                
+                // Walidacja podstawowych pól w każdym obiekcie
+                const isValid = importedApps.every(app => app.id && app.name && app.url);
+                if (!isValid) {
+                    throw new Error("Wszystkie elementy muszą posiadać pola: id, name oraz url!");
+                }
+                
+                apps = importedApps;
+                localStorage.setItem("launchpad_apps", JSON.stringify(apps));
+                
+                if (searchInput) {
+                    renderApps(searchInput.value);
+                } else {
+                    renderApps();
+                }
+                showToast("Pomyślnie zaimportowano konfigurację deweloperską! 📥✨");
+            } catch (err) {
+                alert(`Błąd importu pliku JSON: ${err.message}`);
+                showToast("Nie udało się zaimportować pliku JSON. ❌");
+            }
+        }
+    }
+    fileInput.click();
 }
 
 // -------------------------------------------------------------
@@ -597,6 +728,21 @@ function buildCommandsList() {
             action: () => btnClearScratchpad.click()
         });
     }
+
+    // Nowe komendy AI-SYNC do przesyłania konfiguracji do LLM
+    cmdList.push({
+        title: "Eksportuj konfigurację pulpitu (JSON) 📤",
+        category: "AI-SYNC",
+        icon: "fa-solid fa-file-export",
+        action: () => exportConfiguration()
+    });
+
+    cmdList.push({
+        title: "Importuj konfigurację pulpitu z pliku (JSON) 📥",
+        category: "AI-SYNC",
+        icon: "fa-solid fa-file-import",
+        action: () => importConfiguration()
+    });
 
     apps.forEach(app => {
         cmdList.push({

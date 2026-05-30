@@ -258,12 +258,25 @@
                 
                 <!-- ChatGPT prompt actions -->
                 <div class="ai-prompter-actions">
-                    <button class="btn btn-secondary btn-ai-prompt" id="btn-generate-prompt" title="Generuje ustrukturyzowany prompt z Twoich notatek i kopiuje do schowka">
-                        <i class="fa-solid fa-robot"></i> Generuj Prompt ChatGPT
-                    </button>
-                    <a href="https://chatgpt.com/" target="_blank" class="btn btn-secondary btn-chatgpt" title="Otwórz ChatGPT w nowej karcie">
-                        <i class="fa-solid fa-comment-dots"></i> Otwórz ChatGPT
-                    </a>
+                    <div class="ai-role-selector-container">
+                        <label for="ai-role-select">
+                            <i class="fa-solid fa-user-gear text-accent"></i> Rola Eksperta AI:
+                        </label>
+                        <select id="ai-role-select">
+                            <option value="developer" selected>Senior Developer 💻</option>
+                            <option value="designer">UX/UI Designer 🎨</option>
+                            <option value="qa">QA Engineer / Tester 🧪</option>
+                            <option value="writer">Technical Writer ✍️</option>
+                        </select>
+                    </div>
+                    <div class="ai-buttons-grid">
+                        <button class="btn btn-secondary btn-ai-prompt" id="btn-generate-prompt" title="Generuje ustrukturyzowany prompt z Twoich notatek i kopiuje do schowka">
+                            <i class="fa-solid fa-robot"></i> Generuj Prompt
+                        </button>
+                        <a href="https://chatgpt.com/" target="_blank" class="btn btn-secondary btn-chatgpt" title="Otwórz ChatGPT w nowej karcie">
+                            <i class="fa-solid fa-comment-dots"></i> ChatGPT
+                        </a>
+                    </div>
                 </div>
             </div>
         </div>
