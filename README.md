@@ -1,74 +1,66 @@
-# Podsumowanie i Przewodnik: Launchpad Aplikacji
+# Podsumowanie i Przewodnik: Launchpad Developer Workspace 2.0
 
-Stworzyliśmy w pełni funkcjonalną, zoptymalizowaną, a zarazem wizualnie zjawiskową aplikację **Launchpad**, która służy jako Twój osobisty pulpit nawigacyjny do codziennej pracy. Została zaprojektowana w prestiżowej, jasnej estetyce marki **LingoLogy** (kremowo-miętowe tło z szlachetnymi akcentami i subtelnymi, żywymi gradientami) i zoptymalizowana tak, aby mogła działać nieprzerwanie w tle.
+Wprowadziliśmy kompleksową rozbudowę Launchpada do wersji **Workspace 2.0 (Profesjonalny Pulpit Deweloperski)**. Inspirowani zaawansowanymi narzędziami systemowymi (takimi jak **Raycast, Alfred oraz DevToys**), wdrożyliśmy zestaw potężnych rozszerzeń, które czynią ten pulpit kompletnym i niezastąpionym hubem Twojej codziennej pracy programistycznej.
 
 ---
 
-## 🎨 Co zrobiliśmy (Przegląd Aplikacji)
+## 🎨 Co zrobiliśmy (Przegląd Nowości w wersji 2.0)
 
-Aplikacja składa się z trzech ściśle powiązanych ze sobą komponentów:
-1. **[index.html](file:///C:/Users/kubas/Documents/antigravity/blissful-borg/index.html)**: Semantyczna struktura o wysokiej dostępności i szybkości ładowania, wczytująca czcionki *Outfit* i *Inter* oraz zestaw ikon *FontAwesome*.
-2. **[style.css](file:///C:/Users/kubas/Documents/antigravity/blissful-borg/style.css)**: Kompletny system graficzny LingoLogy Light Mode bazujący na zmiennych CSS. Zawiera m.in.:
-   - **Pastelowe, animowane tło**: Pływające, półprzezroczyste miętowo-błękitne kule światła poruszające się powoli w tle.
-   - **Czyste, białe kafelki (iOS style)**: Kapsuły o wysokiej przejrzystości z ultra-cienką miętową ramką (`rgba(13, 148, 136, 0.12)`) i bardzo miękkim cieniem.
-   - **Responsywną siatkę (Grid)**: Elastyczny układ o automatycznie dopasowywanej wysokości dla zawartości kart.
-3. **[app.js](file:///C:/Users/kubas/Documents/antigravity/blissful-borg/app.js)**: Logika biznesowa napisana w czystym, ultraszybkim Vanilla JS bez zewnętrznych frameworków.
+Aplikacja zyskała pięć nowych, w pełni zintegrowanych silników funkcjonalnych:
+1.  **Command Palette (`Ctrl + K` / `Cmd + K`)**: Osobisty wiersz poleceń (Raycast style) sterowany w 100% klawiaturą, umożliwiający błyskawiczne wywoływanie poleceń oraz wyszukiwanie i otwieranie aplikacji.
+2.  **Live Health Status Checker**: Wbudowany w tło pinger, który sprawdza dostępność Twoich usług i wyświetla na kafelkach świecące diody `● Online` lub `● Offline` w czasie rzeczywistym.
+3.  **Zintegrowany Toolbox Dewelopera**: Monospace'owy widget w panelu bocznym służący jako lokalne narzędzie deweloperskie do formatowania JSON, Base64 encode/decode oraz URL encode/decode (z wbudowaną auto-detekcją formatów).
+4.  **Przełącznik Motywów (Light/Dark)**: Szybka zmiana stylistyki jednym przyciskiem w nagłówku. Możesz płynnie przełączać się między jasnym **LingoLogy Light Mode** a ciemnym **Deep Space Dark Mode** (wybór zapamiętywany jest w `localStorage`).
+5.  **Kategoryzacja Linków**: System tagowania aplikacji (np. `PROD`, `STAGE`, `DEV`, `TOOL`), które wyświetlają się w postaci zgrabnych, transparentnych etykiet w rogu kafelków.
 
 ---
 
 ## 🚀 Główne Funkcje Launchpada
 
-### 1. Dedykowane Kafelki Aplikacji
-*   **Lingology.pl**: Osadzony na głębokim, morskim gradiencie (`gradient-lingology`). Wykorzystuje Twoje ciemne logo (`assets/lingology-logo-dark.png`) – biała ścieżka na morskim tle, które wygląda jak profesjonalna ikona aplikacji iOS.
-*   **Lingology.app**: Osadzony na szmaragdowym gradiencie (`gradient-emerald`). Wykorzystuje jasne logo (`assets/lingology-logo-light.png`) – morska ścieżka na białym tle, dając piękny kontrast.
-*   **TutorApp Dashboard**: Oznaczony ciepłym gradientem zachodzącego słońca (`gradient-tutor`) z **własną, osobną ikoną czapki studenckiej (Graduation Cap)**.
-*   **Dynamiczne zachowanie**: Wszystkie karty otwierają się automatycznie w **nowej karcie** (`target="_blank"`), pozostawiając Twój Launchpad nienaruszony.
+### 1. Czysty Pulpit & Detale Projektu (Modal)
+*   **Minimalistyczne Kafelki**: Kafelki na pulpicie wyświetlają teraz jedynie logo marki (z gradientem dopasowanym do ikony), nazwę projektu, czysty adres URL, tag kategorii oraz diodę live statusu. Jeśli w projekcie znajdują się uwagi, na dole kafelka ukaże się jedynie subtelna kontrolka `📝 Zapisane poprawki`.
+*   **Projekt Modal (Szczegóły)**: Kliknięcie kafelka (lub skrótu numerycznego) otwiera elegancki, szklany modal szczegółów. Zawiera on:
+    *   Duży przycisk **"Uruchom Aplikację 🚀"** otwierający URL w nowej karcie.
+    *   Dedykowany notatnik uwag TODO z błyskawicznym autozapisem.
+    *   Przycisk **"Generuj Prompt ChatGPT 🤖"**, który kompiluje notatki w profesjonalny prompt dla programisty AI i kopiuje go do Twojego schowka, oraz skrót do otwarcia ChatGPT.
 
-### 2. Zintegrowane Notatki "Co jest do poprawy" w Każdym Projekcie
-Pod każdym kafelkiem projektu zintegrowaliśmy dedykowaną strefę szybkich poprawek:
-*   **Działanie**: Kliknięcie przycisku `📝 Notatki do poprawy` w stopce karty płynnie rozwinie (wysunie z dołu) pole tekstowe (textarea).
-*   **Wskaźnik statusu**: Jeśli w projekcie znajdują się zapisane poprawki, przy nagłówku pojawi się pulsująca, pomarańczowa kropka sygnalizująca zaległe zadania.
-*   **Autosave z Debounce**: Wpisanie dowolnej poprawki automatycznie zapisuje się w `localStorage` (z ładną kontrolką "Zapisano" w rogu).
-*   **Bezpieczeństwo kliknięć**: Pisanie w notatniku ani klikanie w pole tekstowe **nigdy nie odpali** linku aplikacji (pełna izolacja kliknięć i skrótów klawiszowych podczas pisania).
+### 2. Live Health Checker (Status Działania Usług)
+*   Na każdym kafelku wyświetla się automatycznie dioda dostępności.
+*   Pinger w tle co sekundę po załadowaniu bada dostępność serwerów `lingology.pl`, `lingology.app` oraz `tutorapp-khaki.vercel.app` (wykorzystując tryb `no-cors`, co pozwala ominąć blokady CORS przeglądarki).
+*   Zielona świecąca dioda oznacza, że usługa działa prawidłowo (`Online`). Czerwona oznacza problem z serwerem, siecią lub DNS (`Offline`).
 
-### 3. Pełna Synchronizacja z LocalStorage (Dodawanie i Usuwanie)
-*   Możesz w każdej chwili kliknąć przycisk **"Dodaj aplikację"** w prawym górnym rogu.
-*   Otworzy się elegancki szklany modal, w którym wpiszesz nazwę, adres URL, wybierzesz ikonę (emoji, np. `💬`, `📚`, lub nazwę ikony FontAwesome, np. `fa-solid fa-gamepad`) oraz jeden z 5 przygotowanych, neonowych gradientów.
-*   System jest wyposażony w **inteligentną synchronizację**: podczas każdego odświeżenia automatycznie aktualizuje domyślne aplikacje (np. poprawki ikon/adresów z kodu), zachowując Twoje notatki oraz wszystkie ręcznie dodane linki.
-*   Aplikacje dodane przez Ciebie mają na karcie (po najechaniu myszką) przycisk **kosza 🗑️**, który pozwala na ich natychmiastowe usunięcie.
+### 3. Command Palette (Raycast / Alfred Style)
+*   Wciśnij **`Ctrl + K`** lub **`Cmd + K`** w dowolnej chwili, aby wywołać panel.
+*   Zacznij pisać, aby przefiltrować listę. Możesz nawigować za pomocą strzałek **`↑` i `↓`** oraz zatwierdzać komendy klawiszem **`Enter`**.
+*   **Dostępne akcje**: uruchamianie dowolnej aplikacji, otwieranie modali szczegółów projektów, czyszczenie scratchpada, otwieranie modalu dodawania linków czy przełączanie motywów.
 
-### 4. Szybkie Wyszukiwanie (Błyskawiczne Filtrowanie)
-*   Wystarczy zacząć pisać w pasku wyszukiwania na górze. Aplikacja natychmiast odfiltruje kafelki po nazwie lub adresie URL.
+### 4. Toolbox Dewelopera (Sidebar Utility)
+Zintegrowany w prawy panel deweloperski notes narzędziowy. Posiada trzy zakładki:
+*   **JSON**: Wklej minifikowany tekst JSON i kliknij "Uruchom", aby go ustrukturyzować (beautify) ze wcięciem 4 spacji.
+*   **Base64**: Wklej tekst do zakodowania LUB zakodowany ciąg Base64 do odkodowania. System **automatycznie rozpozna format** i wykona odpowiednią operację!
+*   **URL**: Wklej ciąg tekstowy LUB zakodowany adres URL (ze znakami `%`). System automatycznie wykona kodowanie lub dekodowanie w zależności od zawartości.
+*   Przycisk kopiowania pozwala natychmiast wrzucić wynik do schowka.
 
-### 5. Inteligentny Sidebar
-*   **Szybki Notes (Scratchpad)**: Notatnik zapamiętujący każdą wpisaną literę w czasie rzeczywistym. Posiada mechanizm **debounce**, pokazuje status zapisu ("Zapisywanie..." / "Zapisano") oraz licznik znaków. Możesz go też wyczyścić jednym przyciskiem.
-*   **Zegar i dynamiczne powitanie**: W prawym górnym rogu znajduje się precyzyjny zegar sekundy-po-sekundzie wraz z pełną polską datą. Powitanie w logo zmienia się automatycznie w zależności od pory dnia (np. *"Dzień dobry, Kuba! 🌅"*, *"Miłego popołudnia! ☀️"*, *"Dobry wieczór, Kuba! 🌙"*, *"Dobrej nocy, Kuba! 🌌"*).
+### 5. Motyw Jasny i Ciemny
+*   **LingoLogy Light Mode**: Czyste, miętowo-kremowe tło o wysokim komforcie, zainspirowane oryginalnym designem LingoLogy.
+*   **Deep Space Dark Mode**: Klimatyczny ciemny motyw z neonowymi poświatami oraz głębokim kontrastem, idealny do pracy w nocy.
 
 ---
 
 ## 🎹 Super-wygodne Skróty Klawiszowe
 
-Stworzyliśmy system sterowania klawiaturą, abyś mógł obsługiwać pulpit bez dotykania myszki:
-
-*   ⌨️ **Klawisze `1` do `9`**: Natychmiast otwiera w nowej zakładce aplikację o danym numerze (widocznym w rogu kafelka). Idealne do błyskawicznego odpalania Lingology czy TutorApp!
-*   ⌨️ **Klawisz `/`**: Automatycznie skupia kursor (focus) na pasku wyszukiwania i zaznacza tekst, umożliwiając natychmiastowe wpisanie szukanej frazy.
-*   ⌨️ **Klawisz `N` lub `n`**: Błyskawicznie otwiera modal dodawania nowej aplikacji.
-*   ⌨️ **Klawisz `Esc`**: Zamyka otwarty modal, czyści wyszukiwarkę i usuwa z niej fokus, lub zamyka aktualnie edytowaną notatkę w kafelku.
+*   ⌨️ **`Ctrl + K` / `Cmd + K`**: Otwiera / zamyka Command Palette.
+*   ⌨️ **Klawisze `1` do `9`**: Otwiera panel szczegółów (modal) danej aplikacji.
+*   ⌨️ **Klawisz `/`**: Skupia kursor (focus) na głównym pasku wyszukiwania.
+*   ⌨️ **Klawisz `N` lub `n`**: Otwiera modal dodawania nowej aplikacji.
+*   ⌨️ **Klawisz `Esc`**: Zamyka otwarte modale, Command Palette lub usuwa fokus z wyszukiwarki.
 
 ---
 
-## 🛠️ Jak Uruchomić i Korzystać?
+## 🛠️ Jak Korzystać?
 
-Możesz uruchomić aplikację na trzy sposoby:
-
-### Sposób 1: Live na Vercel (Zalecany i najwygodniejszy! 🚀)
-Twój Launchpad jest już w pełni wdrożony w chmurze i dostępny 24/7 pod adresem:
+### Wdrożenie Live (Zalecane)
+Aplikacja Workspace 2.0 jest już w pełni wdrożona pod Twoim adresem:
 👉 **[https://kuba-launchpad.vercel.app/](https://kuba-launchpad.vercel.app/)**
-*(Dodaj ten adres do zakładek na swoim pasku i korzystaj bez obciążania komputera!).*
 
-### Sposób 2: Live na GitHub Pages
-Aplikacja jest również stale hostowana pod adresem:
-👉 **[https://talkshiftkontakt-spec.github.io/kuba-launchpad/](https://talkshiftkontakt-spec.github.io/kuba-launchpad/)**
-
-### Sposób 3: Bezpośrednie otwarcie pliku
-Możesz również po prostu otworzyć plik `index.html` bezpośrednio w dowolnej przeglądarce (np. przeciągając plik na okno Chrome/Edge/Firefox).
+*(Wskazówka: Jeśli strona nie załadowała się w nowej wersji, wymuś twarde odświeżenie pamięci podręcznej przeglądarki kombinacją `Ctrl + F5` lub `Cmd + Shift + R`).*
