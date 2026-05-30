@@ -428,26 +428,47 @@ h1, h2, h3, h4, .clock-widget, .logo-text h1 {
     transform: scale(1.06) rotate(2deg);
 }
 
-/* Predefiniowane Gradienty Ikon */
-.gradient-lingology {
+/* Definicje poświat (glow) dla kart na bazie atrybutu data-gradient */
+.app-card[data-gradient="gradient-lingology"] {
+    --card-glow-color: rgba(13, 148, 136, 0.22);
+}
+.app-card[data-gradient="gradient-cyber"] {
+    --card-glow-color: rgba(2, 132, 199, 0.22);
+}
+.app-card[data-gradient="gradient-tutor"] {
+    --card-glow-color: rgba(234, 88, 12, 0.22);
+}
+.app-card[data-gradient="gradient-purple"] {
+    --card-glow-color: rgba(124, 58, 237, 0.22);
+}
+.app-card[data-gradient="gradient-emerald"] {
+    --card-glow-color: rgba(5, 150, 105, 0.22);
+}
+
+/* Klasy gradientów nakładane TYLKO na kontener ikony */
+.app-icon-container.icon-gradient-lingology,
+.app-icon-container.icon-lingology {
     background: var(--grad-lingology);
-    --card-glow-color: rgba(13, 148, 136, 0.25);
 }
-.gradient-cyber {
+
+.app-icon-container.icon-gradient-cyber,
+.app-icon-container.icon-cyber {
     background: var(--grad-cyber);
-    --card-glow-color: rgba(2, 132, 199, 0.25);
 }
-.gradient-tutor {
+
+.app-icon-container.icon-gradient-tutor,
+.app-icon-container.icon-tutor {
     background: var(--grad-tutor);
-    --card-glow-color: rgba(234, 88, 12, 0.25);
 }
-.gradient-purple {
+
+.app-icon-container.icon-gradient-purple,
+.app-icon-container.icon-purple {
     background: var(--grad-purple);
-    --card-glow-color: rgba(124, 58, 237, 0.25);
 }
-.gradient-emerald {
+
+.app-icon-container.icon-gradient-emerald,
+.app-icon-container.icon-emerald {
     background: var(--grad-emerald);
-    --card-glow-color: rgba(5, 150, 105, 0.25);
 }
 
 /* Obrazek logo lub FontAwesome */

@@ -127,9 +127,7 @@ function renderApps(filterQuery = "") {
         card.target = "_blank";
         card.className = "app-card";
         card.setAttribute("data-id", app.id);
-        
-        const gradientClass = app.gradient || "gradient-cyber";
-        card.classList.add(gradientClass);
+        card.setAttribute("data-gradient", app.gradient || "gradient-cyber");
 
         const shortcutBadge = index < 9 ? `<span class="shortcut-number" title="Wciśnij ${index + 1} na klawiaturze, aby otworzyć">${index + 1}</span>` : "";
 
@@ -162,7 +160,7 @@ function renderApps(filterQuery = "") {
                 ${deleteButton}
             </div>
             <div class="card-header">
-                <div class="app-icon-container">
+                <div class="app-icon-container icon-${app.gradient || 'gradient-cyber'}">
                     ${iconHtml}
                 </div>
                 ${shortcutBadge}
