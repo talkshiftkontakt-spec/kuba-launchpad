@@ -1,13 +1,14 @@
 // -------------------------------------------------------------
-// DANE DOMYŚLNE & INICJALIZACJA
+// DANE DOMYŚLNE & INTELIGENTNA SYNCHRONIZACJA LOCALSTORAGE
 // -------------------------------------------------------------
 
+// Zawsze najświeższe dane domyślne z kodu (gwarantuje poprawność ikon i logotypów)
 const DEFAULT_APPS = [
     {
         id: "lingology-pl",
         name: "Lingology.pl",
         url: "https://lingology.pl",
-        icon: "assets/lingology-logo-dark.png", // Biała ścieżka na morskim tle
+        icon: "assets/lingology-logo-dark.png", // Zjawiskowe logo - ciemna wersja marki
         gradient: "gradient-lingology",
         isDefault: true,
         logoType: "image"
@@ -16,7 +17,7 @@ const DEFAULT_APPS = [
         id: "lingology-app",
         name: "Lingology.app",
         url: "https://lingology.app",
-        icon: "assets/lingology-logo-light.png", // Morska ścieżka na białym tle
+        icon: "assets/lingology-logo-light.png", // Jasne logo z morskim elementem
         gradient: "gradient-emerald",
         isDefault: true,
         logoType: "image"
@@ -25,19 +26,38 @@ const DEFAULT_APPS = [
         id: "tutorapp-dashboard",
         name: "TutorApp Dashboard",
         url: "https://tutorapp-khaki.vercel.app/dashboard",
-        icon: "fa-solid fa-graduation-cap",
+        icon: "fa-solid fa-graduation-cap", // Prawidłowa, edukacyjna ikona Graduation Cap
         gradient: "gradient-tutor",
         isDefault: true,
         logoType: "icon"
     }
 ];
 
-// Pobieranie aplikacji z localStorage lub ładowanie domyślnych
-let apps = JSON.parse(localStorage.getItem("launchpad_apps"));
-if (!apps || apps.length === 0) {
-    apps = [...DEFAULT_APPS];
-    localStorage.setItem("launchpad_apps", JSON.stringify(apps));
+// Odczyt z localStorage z wbudowanym mechanizmem migracji i resetowania cache
+let storedApps = JSON.parse(localStorage.getItem("launchpad_apps")) || [];
+
+// Jeśli localStorage było puste, inicjalizujemy defaultami
+if (storedApps.length === 0) {
+    storedApps = [...DEFAULT_APPS];
 }
+
+// Filtrujemy aplikacje dodane ręcznie przez użytkownika (custom)
+const customApps = storedApps.filter(app => !app.isDefault);
+
+// Mapujemy najświeższe defaulty z kodu, ale dbamy o zachowanie notatek, jeśli użytkownik jakieś u nas zapisał!
+const mergedDefaultApps = DEFAULT_APPS.map(defaultApp => {
+    const matchInStorage = storedApps.find(app => app.id === defaultApp.id);
+    if (matchInStorage && matchInStorage.notes) {
+        return { ...defaultApp, notes: matchInStorage.notes };
+    }
+    return defaultApp;
+});
+
+// Łączymy: najnowsze defaulty z kodu (z zachowanymi notatkami) + ręcznie dodane linki użytkownika
+let apps = [...mergedDefaultApps, ...customApps];
+
+// Zapisujemy spójną strukturę do localStorage
+localStorage.setItem("launchpad_apps", JSON.stringify(apps));
 
 // -------------------------------------------------------------
 // SELEKTORY DOM
@@ -61,10 +81,9 @@ const btnCancelModal = document.getElementById("btn-cancel-modal");
 const addAppForm = document.getElementById("add-app-form");
 
 // -------------------------------------------------------------
-// APILKACJE - FUNKCJE
+// DYNAMICZNE RENDEROWANIE SIATKI APLIKACJI & OBSŁUGA W KAFELKACH
 // -------------------------------------------------------------
 
-// Wyciąganie czystej nazwy hosta do wyświetlenia na karcie
 function getCleanDomain(url) {
     try {
         const hostname = new URL(url).hostname;
@@ -74,7 +93,6 @@ function getCleanDomain(url) {
     }
 }
 
-// Renderowanie siatki aplikacji
 function renderApps(filterQuery = "") {
     appsGrid.innerHTML = "";
     
@@ -83,7 +101,6 @@ function renderApps(filterQuery = "") {
         return app.name.toLowerCase().includes(query) || app.url.toLowerCase().includes(query);
     });
 
-    // Aktualizacja licznika
     appsCount.textContent = `${filteredApps.length} ${getPolishAppNoun(filteredApps.length)}`;
 
     if (filteredApps.length === 0) {
@@ -111,11 +128,9 @@ function renderApps(filterQuery = "") {
         card.className = "app-card";
         card.setAttribute("data-id", app.id);
         
-        // Zastosowanie dynamicznej zmiennej koloru akcentu kafelka dla glow
         const gradientClass = app.gradient || "gradient-cyber";
         card.classList.add(gradientClass);
 
-        // Skrót klawiszowy (tylko dla pierwszych 9)
         const shortcutBadge = index < 9 ? `<span class="shortcut-number" title="Wciśnij ${index + 1} na klawiaturze, aby otworzyć">${index + 1}</span>` : "";
 
         // Logo/Ikona HTML
@@ -125,19 +140,20 @@ function renderApps(filterQuery = "") {
         } else if (app.icon.startsWith("fa-")) {
             iconHtml = `<i class="${app.icon}"></i>`;
         } else {
-            // Emotka lub inny tekst
             iconHtml = `<span class="emoji">${app.icon}</span>`;
         }
 
-        // Akcje (kopiuj, usuń)
-        // Defaultowe aplikacje nie mają usuwania dla bezpieczeństwa, ale można je ukryć lub skasować jeśli użytkownik zechce. 
-        // Pozwólmy usuwać wszystko poza defaultami w tej sekcji, a dla defaultów dajmy tylko opcję kopii.
         const deleteButton = !app.isDefault ? `
             <button class="action-btn delete-btn" title="Usuń aplikację" data-action="delete">
                 <i class="fa-regular fa-trash-can"></i>
             </button>
         ` : "";
 
+        // Generujemy kropkę dla aktywnych notatek w podglądzie
+        const hasNotes = app.notes && app.notes.trim().length > 0;
+        const notesDotHtml = hasNotes ? `<span class="notes-dot animate-pulse"></span>` : "";
+
+        // Wstrzykiwanie struktury kafelka wraz z elastycznym notesem do poprawek
         card.innerHTML = `
             <div class="card-actions">
                 <button class="action-btn copy-btn" title="Kopiuj link" data-action="copy">
@@ -154,17 +170,32 @@ function renderApps(filterQuery = "") {
             <div class="card-body">
                 <h3 class="app-title">${app.name}</h3>
                 <div class="app-url">
-                    <i class="fa-solid fa-link" style="font-size: 0.7rem; opacity: 0.6;"></i>
+                    <i class="fa-solid fa-link" style="font-size: 0.65rem; opacity: 0.6;"></i>
                     ${getCleanDomain(app.url)}
+                </div>
+            </div>
+            
+            <!-- STREFA NOTATEK DO POPRAWY -->
+            <div class="card-notes-area" data-id="${app.id}">
+                <div class="notes-toggle-btn" title="Pokaż/ukryj notatki do poprawy dla tego projektu">
+                    <i class="fa-regular fa-clipboard"></i> Notatki do poprawy
+                    ${notesDotHtml}
+                </div>
+                <div class="notes-dropdown-content">
+                    <textarea class="app-notes-textarea" placeholder="Co jest do poprawy w tym projekcie? Wpisz tutaj..." autocomplete="off">${app.notes || ""}</textarea>
+                    <div class="notes-save-indicator">
+                        <i class="fa-solid fa-circle-check"></i> Zapisano
+                    </div>
                 </div>
             </div>
         `;
 
-        // Zapobieganie otwieraniu linku przy kliknięciu na przyciski akcji
+        // Logika kliknięć na akcje w karcie (kopiowanie, usuwanie)
         card.addEventListener("click", (e) => {
             const actionBtn = e.target.closest(".action-btn");
             if (actionBtn) {
                 e.preventDefault();
+                e.stopPropagation();
                 const action = actionBtn.getAttribute("data-action");
                 if (action === "copy") {
                     copyToClipboard(app.url);
@@ -176,16 +207,103 @@ function renderApps(filterQuery = "") {
 
         appsGrid.appendChild(card);
     });
+
+    // Podpięcie logiki rozwijania i autosave dla sekcji Notatek do Poprawy we wszystkich wyrenderowanych kartach
+    attachNotesListeners();
 }
 
-// Dopasowanie końcówki liczebnika w języku polskim
+// Logika rozwijania notatników i autosave na poziomie pojedynczych kafelków
+function attachNotesListeners() {
+    const cards = appsGrid.querySelectorAll(".app-card");
+    cards.forEach(card => {
+        const appId = card.getAttribute("data-id");
+        const notesArea = card.querySelector(".card-notes-area");
+        const toggleBtn = card.querySelector(".notes-toggle-btn");
+        const textarea = card.querySelector(".app-notes-textarea");
+        const saveIndicator = card.querySelector(".notes-save-indicator");
+
+        // Kliknięcie w nagłówek rozwijania notatek
+        toggleBtn.addEventListener("click", (e) => {
+            e.preventDefault();
+            e.stopPropagation(); // Kluczowe: zapobiega otwarciu linku w karcie!
+            
+            const isActive = notesArea.classList.contains("active");
+
+            // Zamykamy inne otwarte notatniki dla ładu na ekranie
+            appsGrid.querySelectorAll(".card-notes-area").forEach(area => {
+                area.classList.remove("active");
+            });
+
+            if (!isActive) {
+                notesArea.classList.add("active");
+                // Automatycznie skupiamy kursor na polu tekstowym po otwarciu
+                setTimeout(() => textarea.focus(), 150);
+            }
+        });
+
+        // Zapobiegamy otwieraniu aplikacji przy kliknięciu/pisaniu w notesie kafelka
+        textarea.addEventListener("click", (e) => {
+            e.stopPropagation();
+        });
+        textarea.addEventListener("focus", (e) => {
+            e.stopPropagation();
+        });
+        textarea.addEventListener("keydown", (e) => {
+            e.stopPropagation(); // Blokuje aktywację skrótów klawiszowych w pulpicie podczas pisania notatki!
+        });
+
+        // Automatyczny zapis notatki z debounce
+        let notesTimeout = null;
+        textarea.addEventListener("input", (e) => {
+            e.stopPropagation();
+            
+            // Pokaż wizualny stan ładowania / zapisywania
+            saveIndicator.innerHTML = `<i class="fa-solid fa-spinner animate-spin"></i> Zapisywanie...`;
+            saveIndicator.classList.add("show");
+
+            clearTimeout(notesTimeout);
+            notesTimeout = setTimeout(() => {
+                const textValue = textarea.value;
+                
+                // Znajdujemy aplikację i aktualizujemy pole notatki
+                const appIndex = apps.findIndex(a => a.id === appId);
+                if (appIndex !== -1) {
+                    apps[appIndex].notes = textValue;
+                    localStorage.setItem("launchpad_apps", JSON.stringify(apps));
+                }
+
+                // Wizualizacja sukcesu zapisu
+                saveIndicator.innerHTML = `<i class="fa-solid fa-circle-check"></i> Zapisano`;
+                
+                // Aktualizujemy kropkę statusu przy nagłówku
+                const existingDot = toggleBtn.querySelector(".notes-dot");
+                if (textValue.trim().length > 0) {
+                    if (!existingDot) {
+                        const newDot = document.createElement("span");
+                        newDot.className = "notes-dot animate-pulse";
+                        toggleBtn.appendChild(newDot);
+                    }
+                } else {
+                    if (existingDot) {
+                        existingDot.remove();
+                    }
+                }
+
+                // Ukryj wskaźnik zapisu po chwili
+                setTimeout(() => {
+                    saveIndicator.classList.remove("show");
+                }, 1200);
+            }, 600);
+        });
+    });
+}
+
 function getPolishAppNoun(number) {
     if (number === 1) return "aplikacja";
     if (number >= 2 && number <= 4) return "aplikacje";
     return "aplikacji";
 }
 
-// Kopiowanie do schowka
 function copyToClipboard(text) {
     navigator.clipboard.writeText(text).then(() => {
         showToast("Skopiowano link do schowka! 📋");
@@ -194,9 +312,8 @@ function copyToClipboard(text) {
     });
 }
 
-// Usuwanie aplikacji
 function deleteApp(id) {
-    if (confirm("Czy na pewno chcesz usunąć tę aplikację ze swojego pulpitu?")) {
+    if (confirm("Czy na pewno chcesz usunąć tę aplikację ze swojego pulpitu? Wraz z nią usuniesz przypisane notatki.")) {
         apps = apps.filter(app => app.id !== id);
         localStorage.setItem("launchpad_apps", JSON.stringify(apps));
         renderApps(searchInput.value);
@@ -204,12 +321,10 @@ function deleteApp(id) {
     }
 }
 
-// Pokazywanie powiadomień toast
 function showToast(message) {
     toast.querySelector(".toast-message").textContent = message;
     toast.classList.add("show");
     
-    // Zresetuj poprzedni timeout, jeśli istnieje
     if (window.toastTimeout) {
         clearTimeout(window.toastTimeout);
     }
@@ -232,7 +347,6 @@ function closeModal() {
     addAppForm.reset();
 }
 
-// Obsługa wysyłania formularza modalnego
 addAppForm.addEventListener("submit", (e) => {
     e.preventDefault();
     
@@ -241,17 +355,14 @@ addAppForm.addEventListener("submit", (e) => {
     const iconInput = document.getElementById("app-icon").value.trim();
     const gradient = document.querySelector('input[name="app-gradient"]:checked').value;
     
-    // Generowanie ID na podstawie nazwy i czasu
     const id = name.toLowerCase().replace(/[^a-z0-9]/g, "-") + "-" + Date.now();
     
-    // Wykrywanie typu ikony (obrazek/emoji/FontAwesome)
     let logoType = "icon";
     let icon = iconInput;
     
     if (iconInput.startsWith("http") || iconInput.startsWith("assets/") || iconInput.endsWith(".png") || iconInput.endsWith(".jpg") || iconInput.endsWith(".svg")) {
         logoType = "image";
     } else if (!iconInput.startsWith("fa-") && iconInput.length > 0) {
-        // Jeśli to nie jest klasa font-awesome (np. fa-solid) i nie jest linkiem, traktujemy jako emoji/tekst
         logoType = "emoji";
     }
 
@@ -262,7 +373,8 @@ addAppForm.addEventListener("submit", (e) => {
         icon,
         gradient,
         isDefault: false,
-        logoType
+        logoType,
+        notes: "" // Domyślnie puste notatki
     };
 
     apps.push(newApp);
@@ -273,7 +385,6 @@ addAppForm.addEventListener("submit", (e) => {
     showToast(`Dodano aplikację ${name}! 🚀`);
 });
 
-// Rejestracja eventów dla modala
 btnAddApp.addEventListener("click", openModal);
 btnCloseModal.addEventListener("click", closeModal);
 btnCancelModal.addEventListener("click", closeModal);
@@ -296,7 +407,6 @@ function updateTime() {
     // Data po polsku
     const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
     let dateStr = now.toLocaleDateString('pl-PL', options);
-    // Zróbmy wielką literę na początku dnia tygodnia
     dateStr = dateStr.charAt(0).toUpperCase() + dateStr.slice(1);
     clockDate.textContent = dateStr;
 
@@ -316,20 +426,16 @@ function updateTime() {
     }
 }
 
-// Uruchamianie zegara
 setInterval(updateTime, 1000);
-updateTime(); // Pierwsze wywołanie natychmiastowe
+updateTime();
 
 // -------------------------------------------------------------
-// NOTES (SCRATCHPAD)
+// NOTES GŁÓWNY (SCRATCHPAD)
 // -------------------------------------------------------------
-
-// Wczytywanie notatnika
 const savedNote = localStorage.getItem("launchpad_scratchpad") || "";
 scratchpad.value = savedNote;
 updateCharCount();
 
-// Aktualizacja liczby znaków
 function updateCharCount() {
     const count = scratchpad.value.length;
     scratchpadChars.textContent = `${count} ${getPolishCharNoun(count)}`;
@@ -341,13 +447,11 @@ function getPolishCharNoun(number) {
     return "znaków";
 }
 
-// Auto-zapis z debounce (opóźnienie zapisu, aby nie przeciążać przeglądarki przy każdym znaku)
 let saveTimeout = null;
 scratchpad.addEventListener("input", () => {
     updateCharCount();
     
-    // Pokaż, że trwa zapis (delikatny efekt)
-    saveStatus.style.opacity = "0.5";
+    saveStatus.style.opacity = "0.7";
     saveStatus.innerHTML = `<i class="fa-solid fa-spinner animate-spin"></i> Zapisywanie...`;
     saveStatus.classList.add("show");
     
@@ -357,22 +461,20 @@ scratchpad.addEventListener("input", () => {
         saveStatus.innerHTML = `<i class="fa-solid fa-circle-check"></i> Zapisano`;
         saveStatus.style.opacity = "1";
         
-        // Ukryj status po 1.5s
         setTimeout(() => {
             saveStatus.classList.remove("show");
         }, 1500);
     }, 800);
 });
 
-// Czyszczenie notesu
 btnClearScratchpad.addEventListener("click", () => {
     if (scratchpad.value.trim().length === 0) return;
     
-    if (confirm("Czy chcesz całkowicie wyczyścić swoje notatki?")) {
+    if (confirm("Czy chcesz całkowicie wyczyścić główne notatki scratchpada?")) {
         scratchpad.value = "";
         localStorage.setItem("launchpad_scratchpad", "");
         updateCharCount();
-        showToast("Notatnik został wyczyszczony! 🧹");
+        showToast("Notatnik scratchpada wyczyszczony! 🧹");
     }
 });
 
@@ -387,25 +489,21 @@ searchInput.addEventListener("input", (e) => {
 // SKRÓTY KLAWISZOWE
 // -------------------------------------------------------------
 document.addEventListener("keydown", (e) => {
-    // Sprawdzamy czy użytkownik pisze w jakimś polu tekstowym
     const activeEl = document.activeElement;
     const isTyping = activeEl.tagName === "INPUT" || activeEl.tagName === "TEXTAREA";
 
     if (!isTyping) {
-        // Skrót '/': Fokus na wyszukiwarkę
         if (e.key === "/") {
             e.preventDefault();
             searchInput.focus();
             searchInput.select();
         }
         
-        // Skrót 'N' lub 'n': Nowa aplikacja
         if (e.key === "n" || e.key === "N") {
             e.preventDefault();
             openModal();
         }
 
-        // Skróty '1' do '9': Otwieranie aplikacji ze skrótu
         if (e.key >= "1" && e.key <= "9") {
             const index = parseInt(e.key) - 1;
             const filtered = apps.filter(app => {
@@ -420,7 +518,6 @@ document.addEventListener("keydown", (e) => {
             }
         }
     } else {
-        // Jeśli pisze w wyszukiwarce lub modal jest aktywny, klawisz 'Esc' zamyka modal / resetuje wyszukiwanie
         if (e.key === "Escape") {
             if (addAppModal.classList.contains("active")) {
                 closeModal();
@@ -428,6 +525,13 @@ document.addEventListener("keydown", (e) => {
                 searchInput.value = "";
                 renderApps();
                 searchInput.blur();
+            } else if (activeEl.classList.contains("app-notes-textarea")) {
+                // Pozwalamy zamknąć pole notatek kafelka po naciśnięciu Esc
+                activeEl.blur();
+                const notesArea = activeEl.closest(".card-notes-area");
+                if (notesArea) {
+                    notesArea.classList.remove("active");
+                }
             }
         }
     }
