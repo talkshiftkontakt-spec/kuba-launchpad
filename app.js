@@ -25,10 +25,10 @@ const DEFAULT_APPS = [
         id: "tutorapp-dashboard",
         name: "TutorApp Dashboard",
         url: "https://tutorapp-khaki.vercel.app/dashboard",
-        icon: "fa-solid fa-graduation-cap", 
+        icon: "assets/lingology-logo-dark.png", // Ta sama ikonka co lingology.pl!
         gradient: "gradient-tutor",
         isDefault: true,
-        logoType: "icon"
+        logoType: "image"
     }
 ];
 
