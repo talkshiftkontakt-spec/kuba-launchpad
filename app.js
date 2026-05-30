@@ -50,7 +50,6 @@ const customApps = storedApps.filter(app => !app.isDefault);
 const mergedDefaultApps = DEFAULT_APPS.map(defaultApp => {
     const matchInStorage = storedApps.find(app => app.id === defaultApp.id);
     if (matchInStorage) {
-        // Zachowujemy notatki oraz kategorię, jeśli została zmodyfikowana
         return { 
             ...defaultApp, 
             notes: matchInStorage.notes || "",
@@ -64,7 +63,7 @@ let apps = [...mergedDefaultApps, ...customApps];
 localStorage.setItem("launchpad_apps", JSON.stringify(apps));
 
 // -------------------------------------------------------------
-// SELEKTORY DOM
+// SELEKTORY DOM - DEFENSYWNE BINDOWANIE
 // -------------------------------------------------------------
 const appsGrid = document.getElementById("apps-grid");
 const searchInput = document.getElementById("search-input");
@@ -123,25 +122,27 @@ function initTheme() {
     const savedTheme = localStorage.getItem("launchpad_theme") || "light";
     if (savedTheme === "dark") {
         document.body.classList.add("dark-theme");
-        btnThemeToggle.innerHTML = `<i class="fa-solid fa-sun"></i>`;
+        if (btnThemeToggle) btnThemeToggle.innerHTML = `<i class="fa-solid fa-sun"></i>`;
     } else {
         document.body.classList.remove("dark-theme");
-        btnThemeToggle.innerHTML = `<i class="fa-solid fa-moon"></i>`;
+        if (btnThemeToggle) btnThemeToggle.innerHTML = `<i class="fa-solid fa-moon"></i>`;
     }
 }
 
-btnThemeToggle.addEventListener("click", () => {
-    const isDark = document.body.classList.toggle("dark-theme");
-    if (isDark) {
-        localStorage.setItem("launchpad_theme", "dark");
-        btnThemeToggle.innerHTML = `<i class="fa-solid fa-sun"></i>`;
-        showToast("Przełączono na motyw ciemny! 🌌");
-    } else {
-        localStorage.setItem("launchpad_theme", "light");
-        btnThemeToggle.innerHTML = `<i class="fa-solid fa-moon"></i>`;
-        showToast("Przełączono na motyw jasny! ☀️");
-    }
-});
+if (btnThemeToggle) {
+    btnThemeToggle.addEventListener("click", () => {
+        const isDark = document.body.classList.toggle("dark-theme");
+        if (isDark) {
+            localStorage.setItem("launchpad_theme", "dark");
+            btnThemeToggle.innerHTML = `<i class="fa-solid fa-sun"></i>`;
+            showToast("Przełączono na motyw ciemny! 🌌");
+        } else {
+            localStorage.setItem("launchpad_theme", "light");
+            btnThemeToggle.innerHTML = `<i class="fa-solid fa-moon"></i>`;
+            showToast("Przełączono na motyw jasny! ☀️");
+        }
+    });
+}
 
 // -------------------------------------------------------------
 // LIVE HEALTH CHECKER (APLIKACJE STATUS ONLINE/OFFLINE)
@@ -154,10 +155,8 @@ async function checkAppStatuses() {
         if (!dot || !text) return;
         
         try {
-            // mode: 'no-cors' wysyła ciche zapytanie. Nawet jeśli CORS zablokuje odczyt odpowiedzi,
-            // fakt, że serwer odpowiedział oznacza, że jest ONLINE i usługa działa!
             const controller = new AbortController();
-            const id = setTimeout(() => controller.abort(), 6000); // 6-sekundowy timeout
+            const id = setTimeout(() => controller.abort(), 6000); 
             
             await fetch(app.url, { 
                 mode: 'no-cors', 
@@ -167,11 +166,11 @@ async function checkAppStatuses() {
             
             clearTimeout(id);
             
-            dot.className = "status-dot online";
-            text.textContent = "Online";
+            if (dot) dot.className = "status-dot online";
+            if (text) text.textContent = "Online";
         } catch (error) {
-            dot.className = "status-dot offline";
-            text.textContent = "Offline";
+            if (dot) dot.className = "status-dot offline";
+            if (text) text.textContent = "Offline";
         }
     });
 }
@@ -179,17 +178,29 @@ async function checkAppStatuses() {
 // -------------------------------------------------------------
 // APILKACJE - RENDEROWANIE SIATKI (PRISTINE CARDS)
 // -------------------------------------------------------------
+function getCleanDomain(url) {
+    try {
+        const hostname = new URL(url).hostname;
+        return hostname.replace("www.", "");
+    } catch (e) {
+        return url.replace("https://", "").replace("http://", "").split("/")[0];
+    }
+}
+
 function renderApps(filterQuery = "") {
+    if (!appsGrid) return;
     appsGrid.innerHTML = "";
     
     const filteredApps = apps.filter(app => {
-        const query = filterQuery.toLowerCase();
+        const query = filterQuery.toLowerCase().trim();
         return app.name.toLowerCase().includes(query) || 
                app.url.toLowerCase().includes(query) ||
                (app.category && app.category.toLowerCase().includes(query));
     });
 
-    appsCount.textContent = `${filteredApps.length} ${getPolishAppNoun(filteredApps.length)}`;
+    if (appsCount) {
+        appsCount.textContent = `${filteredApps.length} ${getPolishAppNoun(filteredApps.length)}`;
+    }
 
     if (filteredApps.length === 0) {
         appsGrid.innerHTML = `
@@ -202,7 +213,7 @@ function renderApps(filterQuery = "") {
         const btnClearSearch = document.getElementById("btn-clear-search");
         if (btnClearSearch) {
             btnClearSearch.addEventListener("click", () => {
-                searchInput.value = "";
+                if (searchInput) searchInput.value = "";
                 renderApps();
             });
         }
@@ -243,10 +254,8 @@ function renderApps(filterQuery = "") {
             </div>
         ` : "";
 
-        // Renderowanie dynamicznej kategorii
         const categoryName = app.category || "PROD";
 
-        // Ultra-czysta i minimalistyczna struktura kafelka z live pingiem i badgem kategorii
         card.innerHTML = `
             <div class="card-actions">
                 <button class="action-btn copy-btn" title="Kopiuj link" data-action="copy">
@@ -300,85 +309,149 @@ function renderApps(filterQuery = "") {
     setTimeout(checkAppStatuses, 100);
 }
 
+function getPolishAppNoun(number) {
+    if (number === 1) return "aplikacja";
+    if (number >= 2 && number <= 4) return "aplikacje";
+    return "aplikacji";
+}
+
+function copyToClipboard(text) {
+    navigator.clipboard.writeText(text).then(() => {
+        showToast("Skopiowano link do schowka! 📋");
+    }).catch(err => {
+        showToast("Nie udało się skopiować linku.");
+    });
+}
+
+function deleteApp(id) {
+    if (confirm("Czy na pewno chcesz usunąć tę aplikację ze swojego pulpitu? Wraz z nią usuniesz przypisane notatki.")) {
+        apps = apps.filter(app => app.id !== id);
+        localStorage.setItem("launchpad_apps", JSON.stringify(apps));
+        if (searchInput) {
+            renderApps(searchInput.value);
+        } else {
+            renderApps();
+        }
+        showToast("Aplikacja została usunięta! 🗑️");
+    }
+}
+
+function showToast(message) {
+    if (!toast) return;
+    toast.querySelector(".toast-message").textContent = message;
+    toast.classList.add("show");
+    
+    if (window.toastTimeout) {
+        clearTimeout(window.toastTimeout);
+    }
+    
+    window.toastTimeout = setTimeout(() => {
+        toast.classList.remove("show");
+    }, 3000);
+}
+
 // -------------------------------------------------------------
-// DETALE PROJEKTU MODAL (PROJEKT DETAILS MODAL)
+// DETALE PROJEKTU MODAL (PROJECT DETAILS MODAL)
 // -------------------------------------------------------------
 function openProjectDetailsModal(appId) {
+    if (!projectDetailsModal) return;
     const app = apps.find(a => a.id === appId);
     if (!app) return;
 
     activeProjectId = appId;
 
-    pModalName.textContent = app.name;
-    pModalUrl.href = app.url;
-    pModalUrl.querySelector("span").textContent = getCleanDomain(app.url);
-    btnPModalLaunch.href = app.url;
-
-    pModalIcon.className = `app-icon-container icon-${app.gradient || 'gradient-cyber'}`;
-    let iconHtml = "";
-    if (app.logoType === "image") {
-        iconHtml = `<img src="${app.icon}" alt="${app.name}" class="app-logo-img">`;
-    } else if (app.icon.startsWith("fa-")) {
-        iconHtml = `<i class="${app.icon}"></i>`;
-    } else {
-        iconHtml = `<span class="emoji">${app.icon}</span>`;
+    if (pModalName) pModalName.textContent = app.name;
+    
+    if (pModalUrl) {
+        pModalUrl.href = app.url;
+        pModalUrl.querySelector("span").textContent = getCleanDomain(app.url);
     }
-    pModalIcon.innerHTML = iconHtml;
+    
+    if (btnPModalLaunch) btnPModalLaunch.href = app.url;
 
-    pModalNotes.value = app.notes || "";
-    pNotesSaveStatus.classList.remove("show");
+    if (pModalIcon) {
+        pModalIcon.className = `app-icon-container icon-${app.gradient || 'gradient-cyber'}`;
+        let iconHtml = "";
+        if (app.logoType === "image") {
+            iconHtml = `<img src="${app.icon}" alt="${app.name}" class="app-logo-img">`;
+        } else if (app.icon.startsWith("fa-")) {
+            iconHtml = `<i class="${app.icon}"></i>`;
+        } else {
+            iconHtml = `<span class="emoji">${app.icon}</span>`;
+        }
+        pModalIcon.innerHTML = iconHtml;
+    }
+
+    if (pModalNotes) pModalNotes.value = app.notes || "";
+    if (pNotesSaveStatus) pNotesSaveStatus.classList.remove("show");
 
     projectDetailsModal.classList.add("active");
-    pModalNotes.focus();
+    if (pModalNotes) pModalNotes.focus();
 }
 
 function closeProjectDetailsModal() {
+    if (!projectDetailsModal) return;
     projectDetailsModal.classList.remove("active");
     activeProjectId = null;
-    renderApps(searchInput.value);
+    if (searchInput) {
+        renderApps(searchInput.value);
+    } else {
+        renderApps();
+    }
 }
 
-// Autozapis notatek w modalu
+// Obsługa autozapisu notatek w modalu
 let pNotesTimeout = null;
-pModalNotes.addEventListener("input", () => {
-    if (!activeProjectId) return;
+if (pModalNotes) {
+    pModalNotes.addEventListener("input", () => {
+        if (!activeProjectId) return;
 
-    pNotesSaveStatus.innerHTML = `<i class="fa-solid fa-spinner animate-spin"></i> Zapisywanie...`;
-    pNotesSaveStatus.classList.add("show");
-
-    clearTimeout(pNotesTimeout);
-    pNotesTimeout = setTimeout(() => {
-        const textValue = pModalNotes.value;
-
-        const appIndex = apps.findIndex(a => a.id === activeProjectId);
-        if (appIndex !== -1) {
-            apps[appIndex].notes = textValue;
-            localStorage.setItem("launchpad_apps", JSON.stringify(apps));
+        if (pNotesSaveStatus) {
+            pNotesSaveStatus.innerHTML = `<i class="fa-solid fa-spinner animate-spin"></i> Zapisywanie...`;
+            pNotesSaveStatus.classList.add("show");
         }
 
-        pNotesSaveStatus.innerHTML = `<i class="fa-solid fa-circle-check"></i> Zapisano`;
-        
-        setTimeout(() => {
-            pNotesSaveStatus.classList.remove("show");
-        }, 1200);
-    }, 600);
-});
+        clearTimeout(pNotesTimeout);
+        pNotesTimeout = setTimeout(() => {
+            const textValue = pModalNotes.value;
+
+            const appIndex = apps.findIndex(a => a.id === activeProjectId);
+            if (appIndex !== -1) {
+                apps[appIndex].notes = textValue;
+                localStorage.setItem("launchpad_apps", JSON.stringify(apps));
+            }
+
+            if (pNotesSaveStatus) {
+                pNotesSaveStatus.innerHTML = `<i class="fa-solid fa-circle-check"></i> Zapisano`;
+            }
+            
+            setTimeout(() => {
+                if (pNotesSaveStatus) pNotesSaveStatus.classList.remove("show");
+            }, 1200);
+        }, 600);
+    });
+
+    pModalNotes.addEventListener("keydown", (e) => {
+        e.stopPropagation();
+    });
+}
 
 // GENERATOR PROMPTÓW CHATGPT
-btnGeneratePrompt.addEventListener("click", () => {
-    if (!activeProjectId) return;
+if (btnGeneratePrompt) {
+    btnGeneratePrompt.addEventListener("click", () => {
+        if (!activeProjectId) return;
 
-    const app = apps.find(a => a.id === activeProjectId);
-    if (!app) return;
+        const app = apps.find(a => a.id === activeProjectId);
+        if (!app) return;
 
-    const notesText = pModalNotes.value.trim();
+        const notesText = pModalNotes ? pModalNotes.value.trim() : "";
 
-    if (notesText.length === 0) {
-        showToast("Wpisz najpierw notatki/poprawki dla tego projektu! 📝");
-        return;
-    }
+        if (notesText.length === 0) {
+            showToast("Wpisz najpierw notatki/poprawki dla tego projektu! 📝");
+            return;
+        }
 
-    const promptText = `Jesteś wybitnym inżynierem oprogramowania i architektem IT. Zwracam się z prośbą o pomoc w wdrożeniu poprawek, naprawie błędów oraz rozwoju mojej aplikacji: ${app.name} (Adres URL projektu: ${app.url}).
+        const promptText = `Jesteś wybitnym inżynierem oprogramowania i architektem IT. Zwracam się z prośbą o pomoc w wdrożeniu poprawek, naprawie błędów oraz rozwoju mojej aplikacji: ${app.name} (Adres URL projektu: ${app.url}).
 
 Oto lista uwag, błędów do naprawienia oraz planowanych funkcji z mojego notatnika projektowego:
 ---
@@ -389,106 +462,110 @@ Proszę Cię o szczegółową analizę każdego z powyższych punktów i przygot
 1. Ustrukturyzowanego planu działania krok-po-kroku (Action Plan) uporządkowanego od kwestii krytycznych po detale wizualne.
 2. Zaproponowanie gotowych, zoptymalizowanych rozwiązań technicznych, architektury kodu, wskazówek implementacyjnych oraz konkretnych fragmentów kodu w celach refaktoryzacji, które pomogą mi zaimplementować te poprawki w najprostszy i najbardziej bezawaryjny sposób.`;
 
-    navigator.clipboard.writeText(promptText).then(() => {
-        showToast("Skopiowano prompt dla ChatGPT do schowka! 🤖📋");
-    }).catch(err => {
-        showToast("Nie udało się skopiować promptu.");
+        navigator.clipboard.writeText(promptText).then(() => {
+            showToast("Skopiowano prompt dla ChatGPT do schowka! 🤖📋");
+        }).catch(err => {
+            showToast("Nie udało się skopiować promptu.");
+        });
     });
-});
+}
 
 // -------------------------------------------------------------
 // TOOLBOX DEWELOPERA (JSON, BASE64, URL COVERT/FORMAT)
 // -------------------------------------------------------------
-toolboxTabs.forEach(tab => {
-    tab.addEventListener("click", () => {
-        toolboxTabs.forEach(t => t.classList.remove("active"));
-        tab.classList.add("active");
-        
-        activeToolboxTab = tab.getAttribute("data-tab");
-        toolboxInput.value = "";
-        toolboxOutput.value = "";
-        
-        // Dynamiczny placeholder dla lepszego UX
-        if (activeToolboxTab === "json") {
-            toolboxInput.placeholder = "Wklej minifikowany JSON, aby go ustrukturyzować...";
-        } else if (activeToolboxTab === "base64") {
-            toolboxInput.placeholder = "Wklej tekst do zakodowania LUB zakodowany Base64 do odkodowania (auto-detekcja)...";
-        } else {
-            toolboxInput.placeholder = "Wklej URL do odkodowania LUB tekst do zakodowania (auto-detekcja)...";
-        }
+if (toolboxTabs && toolboxTabs.length > 0) {
+    toolboxTabs.forEach(tab => {
+        tab.addEventListener("click", () => {
+            toolboxTabs.forEach(t => t.classList.remove("active"));
+            tab.classList.add("active");
+            
+            activeToolboxTab = tab.getAttribute("data-tab");
+            if (toolboxInput) toolboxInput.value = "";
+            if (toolboxOutput) toolboxOutput.value = "";
+            
+            if (toolboxInput) {
+                if (activeToolboxTab === "json") {
+                    toolboxInput.placeholder = "Wklej minifikowany JSON, aby go ustrukturyzować...";
+                } else if (activeToolboxTab === "base64") {
+                    toolboxInput.placeholder = "Wklej tekst do zakodowania LUB zakodowany Base64 do odkodowania (auto-detekcja)...";
+                } else {
+                    toolboxInput.placeholder = "Wklej URL do odkodowania LUB tekst do zakodowania (auto-detekcja)...";
+                }
+            }
+        });
     });
-});
+}
 
 // Uruchamianie konwersji
-btnToolboxRun.addEventListener("click", () => {
-    const input = toolboxInput.value.trim();
-    if (!input) {
-        toolboxOutput.value = "Błąd: Brak danych wejściowych!";
-        return;
-    }
+if (btnToolboxRun && toolboxInput && toolboxOutput) {
+    btnToolboxRun.addEventListener("click", () => {
+        const input = toolboxInput.value.trim();
+        if (!input) {
+            toolboxOutput.value = "Błąd: Brak danych wejściowych!";
+            return;
+        }
 
-    if (activeToolboxTab === "json") {
-        try {
-            const parsed = JSON.parse(input);
-            toolboxOutput.value = JSON.stringify(parsed, null, 4);
-            showToast("Sformatowano JSON! 🛠️");
-        } catch (e) {
-            toolboxOutput.value = `Błąd JSON: Niepoprawny format danych!\n\nSzczegóły: ${e.message}`;
-        }
-    } 
-    else if (activeToolboxTab === "base64") {
-        try {
-            // Inteligentna auto-detekcja Base64:
-            // Próbujemy zdekodować, a jeśli się uda i wynik to tekst ASCII/printable - dekodujemy. Inaczej kodujemy!
-            const decoded = atob(input);
-            if (/^[\x00-\x7F]*$/.test(decoded)) {
-                toolboxOutput.value = decoded;
-                showToast("Odkodowano z Base64! 🔓");
-            } else {
-                throw new Error("Not plain text");
-            }
-        } catch (e) {
-            // Kodowanie
-            toolboxOutput.value = btoa(unescape(encodeURIComponent(input))); // Obsługa polskich znaków utf-8
-            showToast("Zakodowano do Base64! 🔒");
-        }
-    } 
-    else if (activeToolboxTab === "url") {
-        // Auto-detekcja URL
-        if (input.includes("%")) {
+        if (activeToolboxTab === "json") {
             try {
-                toolboxOutput.value = decodeURIComponent(input);
-                showToast("Odkodowano adres URL! 🔓");
+                const parsed = JSON.parse(input);
+                toolboxOutput.value = JSON.stringify(parsed, null, 4);
+                showToast("Sformatowano JSON! 🛠️");
             } catch (e) {
+                toolboxOutput.value = `Błąd JSON: Niepoprawny format danych!\n\nSzczegóły: ${e.message}`;
+            }
+        } 
+        else if (activeToolboxTab === "base64") {
+            try {
+                const decoded = atob(input);
+                if (/^[\x00-\x7F]*$/.test(decoded)) {
+                    toolboxOutput.value = decoded;
+                    showToast("Odkodowano z Base64! 🔓");
+                } else {
+                    throw new Error("Not plain text");
+                }
+            } catch (e) {
+                toolboxOutput.value = btoa(unescape(encodeURIComponent(input))); 
+                showToast("Zakodowano do Base64! 🔒");
+            }
+        } 
+        else if (activeToolboxTab === "url") {
+            if (input.includes("%")) {
+                try {
+                    toolboxOutput.value = decodeURIComponent(input);
+                    showToast("Odkodowano adres URL! 🔓");
+                } catch (e) {
+                    toolboxOutput.value = encodeURIComponent(input);
+                    showToast("Zakodowano adres URL! 🔒");
+                }
+            } else {
                 toolboxOutput.value = encodeURIComponent(input);
                 showToast("Zakodowano adres URL! 🔒");
             }
-        } else {
-            toolboxOutput.value = encodeURIComponent(input);
-            showToast("Zakodowano adres URL! 🔒");
         }
-    }
-});
+    });
+}
 
 // Kopiowanie wyniku z toolboxa
-btnToolboxCopy.addEventListener("click", () => {
-    const output = toolboxOutput.value.trim();
-    if (!output || output.startsWith("Błąd:")) {
-        showToast("Brak poprawnego wyniku do skopiowania!");
-        return;
-    }
-    
-    navigator.clipboard.writeText(output).then(() => {
-        showToast("Skopiowano wynik z Toolboxa! 📋");
+if (btnToolboxCopy && toolboxOutput) {
+    btnToolboxCopy.addEventListener("click", () => {
+        const output = toolboxOutput.value.trim();
+        if (!output || output.startsWith("Błąd:")) {
+            showToast("Brak poprawnego wyniku do skopiowania!");
+            return;
+        }
+        
+        navigator.clipboard.writeText(output).then(() => {
+            showToast("Skopiowano wynik z Toolboxa! 📋");
+        });
     });
-});
+}
 
-// Zapobiegamy skrótom globalnym podczas pisania w toolboxie
-[toolboxInput, toolboxOutput].forEach(el => {
-    el.addEventListener("keydown", (e) => {
-        e.stopPropagation();
-    });
-});
+if (toolboxInput) {
+    toolboxInput.addEventListener("keydown", (e) => e.stopPropagation());
+}
+if (toolboxOutput) {
+    toolboxOutput.addEventListener("keydown", (e) => e.stopPropagation());
+}
 
 // -------------------------------------------------------------
 // COMMAND PALETTE (RAYCAST / ALFRED STYLE LOGIC)
@@ -496,27 +573,31 @@ btnToolboxCopy.addEventListener("click", () => {
 function buildCommandsList() {
     const cmdList = [];
 
-    // Dodanie komend systemowych/globalnych
     cmdList.push({
         title: "Dodaj nową aplikację",
         category: "SYSTEM",
         icon: "fa-solid fa-plus",
         action: () => openModal()
     });
-    cmdList.push({
-        title: "Przełącz motyw (Jasny / Ciemny)",
-        category: "SYSTEM",
-        icon: "fa-solid fa-circle-half-stroke",
-        action: () => btnThemeToggle.click()
-    });
-    cmdList.push({
-        title: "Wyczyść Scratchpad (Główny Notes)",
-        category: "SYSTEM",
-        icon: "fa-solid fa-trash-can",
-        action: () => btnClearScratchpad.click()
-    });
+    
+    if (btnThemeToggle) {
+        cmdList.push({
+            title: "Przełącz motyw (Jasny / Ciemny)",
+            category: "SYSTEM",
+            icon: "fa-solid fa-circle-half-stroke",
+            action: () => btnThemeToggle.click()
+        });
+    }
+    
+    if (btnClearScratchpad) {
+        cmdList.push({
+            title: "Wyczyść Scratchpad (Główny Notes)",
+            category: "SYSTEM",
+            icon: "fa-solid fa-trash-can",
+            action: () => btnClearScratchpad.click()
+        });
+    }
 
-    // Dynamiczne komendy dla każdego projektu
     apps.forEach(app => {
         cmdList.push({
             title: `Pokaż szczegóły: ${app.name}`,
@@ -536,24 +617,26 @@ function buildCommandsList() {
 }
 
 function openCommandPalette() {
+    if (!cmdPalette) return;
     selectedCmdIndex = 0;
-    cmdPaletteInput.value = "";
+    if (cmdPaletteInput) cmdPaletteInput.value = "";
     cmdPalette.classList.add("active");
     renderCommandResults();
-    setTimeout(() => cmdPaletteInput.focus(), 150);
+    if (cmdPaletteInput) setTimeout(() => cmdPaletteInput.focus(), 150);
 }
 
 function closeCommandPalette() {
+    if (!cmdPalette) return;
     cmdPalette.classList.remove("active");
-    cmdPaletteInput.blur();
+    if (cmdPaletteInput) cmdPaletteInput.blur();
 }
 
 function renderCommandResults() {
+    if (!cmdPaletteResults) return;
     cmdPaletteResults.innerHTML = "";
     const allCommands = buildCommandsList();
-    const query = cmdPaletteInput.value.toLowerCase().trim();
+    const query = cmdPaletteInput ? cmdPaletteInput.value.toLowerCase().trim() : "";
 
-    // Filtrowanie komend na bazie wyszukiwania
     filteredCommands = allCommands.filter(cmd => {
         return cmd.title.toLowerCase().includes(query) || cmd.category.toLowerCase().includes(query);
     });
@@ -587,7 +670,6 @@ function renderCommandResults() {
             closeCommandPalette();
         });
 
-        // Autoscroll elementu do widoku przy sterowaniu strzałkami
         if (index === selectedCmdIndex) {
             setTimeout(() => {
                 item.scrollIntoView({ block: "nearest" });
@@ -599,106 +681,127 @@ function renderCommandResults() {
 }
 
 // Zdarzenia w Command Palette
-cmdPaletteInput.addEventListener("input", () => {
-    selectedCmdIndex = 0;
-    renderCommandResults();
-});
-
-cmdPaletteInput.addEventListener("keydown", (e) => {
-    e.stopPropagation(); // Blokowanie globalnych hotkeyów podczas pisania
-
-    if (e.key === "ArrowDown") {
-        e.preventDefault();
-        selectedCmdIndex = (selectedCmdIndex + 1) % filteredCommands.length;
+if (cmdPaletteInput) {
+    cmdPaletteInput.addEventListener("input", () => {
+        selectedCmdIndex = 0;
         renderCommandResults();
-    } 
-    else if (e.key === "ArrowUp") {
-        e.preventDefault();
-        selectedCmdIndex = (selectedCmdIndex - 1 + filteredCommands.length) % filteredCommands.length;
-        renderCommandResults();
-    } 
-    else if (e.key === "Enter") {
-        e.preventDefault();
-        if (filteredCommands[selectedCmdIndex]) {
-            filteredCommands[selectedCmdIndex].action();
+    });
+
+    cmdPaletteInput.addEventListener("keydown", (e) => {
+        e.stopPropagation(); 
+
+        if (e.key === "ArrowDown") {
+            e.preventDefault();
+            selectedCmdIndex = (selectedCmdIndex + 1) % filteredCommands.length;
+            renderCommandResults();
+        } 
+        else if (e.key === "ArrowUp") {
+            e.preventDefault();
+            selectedCmdIndex = (selectedCmdIndex - 1 + filteredCommands.length) % filteredCommands.length;
+            renderCommandResults();
+        } 
+        else if (e.key === "Enter") {
+            e.preventDefault();
+            if (filteredCommands[selectedCmdIndex]) {
+                filteredCommands[selectedCmdIndex].action();
+                closeCommandPalette();
+            }
+        } 
+        else if (e.key === "Escape") {
+            e.preventDefault();
             closeCommandPalette();
         }
-    } 
-    else if (e.key === "Escape") {
-        e.preventDefault();
-        closeCommandPalette();
-    }
-});
+    });
+}
 
-cmdPalette.addEventListener("click", (e) => {
-    if (e.target === cmdPalette) closeCommandPalette();
-});
+if (cmdPalette) {
+    cmdPalette.addEventListener("click", (e) => {
+        if (e.target === cmdPalette) closeCommandPalette();
+    });
+}
 
 // -------------------------------------------------------------
 // FORMULARZ DODAWANIA NOWEJ APLIKACJI (MODAL DODAWANIA)
 // -------------------------------------------------------------
 function openModal() {
-    addAppModal.classList.add("active");
-    document.getElementById("app-name").focus();
+    if (addAppModal) addAppModal.classList.add("active");
+    const nameEl = document.getElementById("app-name");
+    if (nameEl) nameEl.focus();
 }
 
 function closeModal() {
-    addAppModal.classList.remove("active");
-    addAppForm.reset();
+    if (addAppModal) addAppModal.classList.remove("active");
+    if (addAppForm) addAppForm.reset();
 }
 
-addAppForm.addEventListener("submit", (e) => {
-    e.preventDefault();
-    
-    const name = document.getElementById("app-name").value.trim();
-    const url = document.getElementById("app-url").value.trim();
-    const category = document.getElementById("app-category").value.trim().toUpperCase() || "PROD";
-    const iconInput = document.getElementById("app-icon").value.trim();
-    const gradient = document.querySelector('input[name="app-gradient"]:checked').value;
-    
-    const id = name.toLowerCase().replace(/[^a-z0-9]/g, "-") + "-" + Date.now();
-    
-    let logoType = "icon";
-    let icon = iconInput;
-    
-    if (iconInput.startsWith("http") || iconInput.startsWith("assets/") || iconInput.endsWith(".png") || iconInput.endsWith(".jpg") || iconInput.endsWith(".svg")) {
-        logoType = "image";
-    } else if (!iconInput.startsWith("fa-") && iconInput.length > 0) {
-        logoType = "emoji";
-    }
+if (addAppForm) {
+    addAppForm.addEventListener("submit", (e) => {
+        e.preventDefault();
+        
+        const nameEl = document.getElementById("app-name");
+        const urlEl = document.getElementById("app-url");
+        const categoryEl = document.getElementById("app-category");
+        const iconInputEl = document.getElementById("app-icon");
+        const gradientEl = document.querySelector('input[name="app-gradient"]:checked');
 
-    const newApp = {
-        id,
-        name,
-        url,
-        icon,
-        gradient,
-        isDefault: false,
-        logoType,
-        category,
-        notes: "" 
-    };
+        const name = nameEl ? nameEl.value.trim() : "";
+        const url = urlEl ? urlEl.value.trim() : "";
+        const category = categoryEl ? categoryEl.value.trim().toUpperCase() : "PROD";
+        const iconInput = iconInputEl ? iconInputEl.value.trim() : "";
+        const gradient = gradientEl ? gradientEl.value : "gradient-cyber";
+        
+        const id = name.toLowerCase().replace(/[^a-z0-9]/g, "-") + "-" + Date.now();
+        
+        let logoType = "icon";
+        let icon = iconInput;
+        
+        if (iconInput.startsWith("http") || iconInput.startsWith("assets/") || iconInput.endsWith(".png") || iconInput.endsWith(".jpg") || iconInput.endsWith(".svg")) {
+            logoType = "image";
+        } else if (!iconInput.startsWith("fa-") && iconInput.length > 0) {
+            logoType = "emoji";
+        }
 
-    apps.push(newApp);
-    localStorage.setItem("launchpad_apps", JSON.stringify(apps));
-    
-    renderApps(searchInput.value);
-    closeModal();
-    showToast(`Dodano aplikację ${name}! 🚀`);
-});
+        const newApp = {
+            id,
+            name,
+            url,
+            icon,
+            gradient,
+            isDefault: false,
+            logoType,
+            category,
+            notes: "" 
+        };
 
-btnAddApp.addEventListener("click", openModal);
-btnCloseModal.addEventListener("click", closeModal);
-btnCancelModal.addEventListener("click", closeModal);
-addAppModal.addEventListener("click", (e) => {
-    if (e.target === addAppModal) closeModal();
-});
+        apps.push(newApp);
+        localStorage.setItem("launchpad_apps", JSON.stringify(apps));
+        
+        if (searchInput) {
+            renderApps(searchInput.value);
+        } else {
+            renderApps();
+        }
+        closeModal();
+        showToast(`Dodano aplikację ${name}! 🚀`);
+    });
+}
+
+if (btnAddApp) btnAddApp.addEventListener("click", openModal);
+if (btnCloseModal) btnCloseModal.addEventListener("click", closeModal);
+if (btnCancelModal) btnCancelModal.addEventListener("click", closeModal);
+if (addAppModal) {
+    addAppModal.addEventListener("click", (e) => {
+        if (e.target === addAppModal) closeModal();
+    });
+}
 
 // Obsługa zamykania modala szczegółów projektu
-btnClosePModal.addEventListener("click", closeProjectDetailsModal);
-projectDetailsModal.addEventListener("click", (e) => {
-    if (e.target === projectDetailsModal) closeProjectDetailsModal();
-});
+if (btnClosePModal) btnClosePModal.addEventListener("click", closeProjectDetailsModal);
+if (projectDetailsModal) {
+    projectDetailsModal.addEventListener("click", (e) => {
+        if (e.target === projectDetailsModal) closeProjectDetailsModal();
+    });
+}
 
 // -------------------------------------------------------------
 // DYNAMICZNY ZEGAR & POWITANIE
@@ -706,15 +809,19 @@ projectDetailsModal.addEventListener("click", (e) => {
 function updateTime() {
     const now = new Date();
     
-    let hours = now.getHours().toString().padStart(2, "0");
-    let minutes = now.getMinutes().toString().padStart(2, "0");
-    let seconds = now.getSeconds().toString().padStart(2, "0");
-    clockTime.textContent = `${hours}:${minutes}:${seconds}`;
+    if (clockTime) {
+        let hours = now.getHours().toString().padStart(2, "0");
+        let minutes = now.getMinutes().toString().padStart(2, "0");
+        let seconds = now.getSeconds().toString().padStart(2, "0");
+        clockTime.textContent = `${hours}:${minutes}:${seconds}`;
+    }
 
-    const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
-    let dateStr = now.toLocaleDateString('pl-PL', options);
-    dateStr = dateStr.charAt(0).toUpperCase() + dateStr.slice(1);
-    clockDate.textContent = dateStr;
+    if (clockDate) {
+        const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+        let dateStr = now.toLocaleDateString('pl-PL', options);
+        dateStr = dateStr.charAt(0).toUpperCase() + dateStr.slice(1);
+        clockDate.textContent = dateStr;
+    }
 
     const hour = now.getHours();
     const welcomeSubtext = document.querySelector(".logo-text p");
@@ -737,11 +844,41 @@ updateTime();
 // -------------------------------------------------------------
 // NOTES GŁÓWNY (SCRATCHPAD)
 // -------------------------------------------------------------
-const savedNote = localStorage.getItem("launchpad_scratchpad") || "";
-scratchpad.value = savedNote;
-updateCharCount();
+if (scratchpad) {
+    const savedNote = localStorage.getItem("launchpad_scratchpad") || "";
+    scratchpad.value = savedNote;
+    updateCharCount();
+
+    scratchpad.addEventListener("input", () => {
+        updateCharCount();
+        
+        if (saveStatus) {
+            saveStatus.style.opacity = "0.7";
+            saveStatus.innerHTML = `<i class="fa-solid fa-spinner animate-spin"></i> Zapisywanie...`;
+            saveStatus.classList.add("show");
+        }
+        
+        clearTimeout(saveTimeout);
+        saveTimeout = setTimeout(() => {
+            localStorage.setItem("launchpad_scratchpad", scratchpad.value);
+            if (saveStatus) {
+                saveStatus.innerHTML = `<i class="fa-solid fa-circle-check"></i> Zapisano`;
+                saveStatus.style.opacity = "1";
+            }
+            
+            setTimeout(() => {
+                if (saveStatus) saveStatus.classList.remove("show");
+            }, 1500);
+        }, 800);
+    });
+
+    scratchpad.addEventListener("keydown", (e) => {
+        e.stopPropagation();
+    });
+}
 
 function updateCharCount() {
+    if (!scratchpad || !scratchpadChars) return;
     const count = scratchpad.value.length;
     scratchpadChars.textContent = `${count} ${getPolishCharNoun(count)}`;
 }
@@ -753,59 +890,40 @@ function getPolishCharNoun(number) {
 }
 
 let saveTimeout = null;
-scratchpad.addEventListener("input", () => {
-    updateCharCount();
-    
-    saveStatus.style.opacity = "0.7";
-    saveStatus.innerHTML = `<i class="fa-solid fa-spinner animate-spin"></i> Zapisywanie...`;
-    saveStatus.classList.add("show");
-    
-    clearTimeout(saveTimeout);
-    saveTimeout = setTimeout(() => {
-        localStorage.setItem("launchpad_scratchpad", scratchpad.value);
-        saveStatus.innerHTML = `<i class="fa-solid fa-circle-check"></i> Zapisano`;
-        saveStatus.style.opacity = "1";
+
+if (btnClearScratchpad && scratchpad) {
+    btnClearScratchpad.addEventListener("click", () => {
+        if (scratchpad.value.trim().length === 0) return;
         
-        setTimeout(() => {
-            saveStatus.classList.remove("show");
-        }, 1500);
-    }, 800);
-});
-
-btnClearScratchpad.addEventListener("click", () => {
-    if (scratchpad.value.trim().length === 0) return;
-    
-    if (confirm("Czy chcesz całkowicie wyczyścić główne notatki scratchpada?")) {
-        scratchpad.value = "";
-        localStorage.setItem("launchpad_scratchpad", "");
-        updateCharCount();
-        showToast("Notatnik scratchpada wyczyszczony! 🧹");
-    }
-});
-
-// Zapobiegamy skrótom podczas pisania w notatniku głównym
-scratchpad.addEventListener("keydown", (e) => {
-    e.stopPropagation();
-});
+        if (confirm("Czy chcesz całkowicie wyczyścić główne notatki scratchpada?")) {
+            scratchpad.value = "";
+            localStorage.setItem("launchpad_scratchpad", "");
+            updateCharCount();
+            showToast("Notatnik scratchpada wyczyszczony! 🧹");
+        }
+    });
+}
 
 // -------------------------------------------------------------
 // WYSZUKIWANIE & FILTROWANIE W PASKU
 // -------------------------------------------------------------
-searchInput.addEventListener("input", (e) => {
-    renderApps(e.target.value);
-});
+if (searchInput) {
+    searchInput.addEventListener("input", (e) => {
+        renderApps(e.target.value);
+    });
+}
 
 // -------------------------------------------------------------
 // SKRÓTY KLAWISZOWE (GLOBALNE)
 // -------------------------------------------------------------
 document.addEventListener("keydown", (e) => {
     const activeEl = document.activeElement;
-    const isTyping = activeEl.tagName === "INPUT" || activeEl.tagName === "TEXTAREA";
+    const isTyping = activeEl && (activeEl.tagName === "INPUT" || activeEl.tagName === "TEXTAREA");
 
     // Wywołanie Command Palette: Ctrl + K lub Cmd + K
     if ((e.ctrlKey || e.metaKey) && e.key === "k") {
         e.preventDefault();
-        if (cmdPalette.classList.contains("active")) {
+        if (cmdPalette && cmdPalette.classList.contains("active")) {
             closeCommandPalette();
         } else {
             openCommandPalette();
@@ -816,8 +934,10 @@ document.addEventListener("keydown", (e) => {
     if (!isTyping) {
         if (e.key === "/") {
             e.preventDefault();
-            searchInput.focus();
-            searchInput.select();
+            if (searchInput) {
+                searchInput.focus();
+                searchInput.select();
+            }
         }
         
         if (e.key === "n" || e.key === "N") {
@@ -827,8 +947,8 @@ document.addEventListener("keydown", (e) => {
 
         if (e.key >= "1" && e.key <= "9") {
             const index = parseInt(e.key) - 1;
+            const query = (searchInput && searchInput.value) ? searchInput.value.toLowerCase() : "";
             const filtered = apps.filter(app => {
-                const query = searchInput.value.toLowerCase();
                 return app.name.toLowerCase().includes(query) || app.url.toLowerCase().includes(query);
             });
 
@@ -840,16 +960,16 @@ document.addEventListener("keydown", (e) => {
         }
     } else {
         if (e.key === "Escape") {
-            if (addAppModal.classList.contains("active")) {
+            if (addAppModal && addAppModal.classList.contains("active")) {
                 closeModal();
-            } else if (projectDetailsModal.classList.contains("active")) {
+            } else if (projectDetailsModal && projectDetailsModal.classList.contains("active")) {
                 closeProjectDetailsModal();
-            } else if (cmdPalette.classList.contains("active")) {
+            } else if (cmdPalette && cmdPalette.classList.contains("active")) {
                 closeCommandPalette();
             } else if (activeEl === searchInput) {
-                searchInput.value = "";
+                if (searchInput) searchInput.value = "";
                 renderApps();
-                searchInput.blur();
+                if (searchInput) searchInput.blur();
             }
         }
     }
