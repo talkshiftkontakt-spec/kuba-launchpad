@@ -10,7 +10,9 @@ const DEFAULT_APPS = [
         icon: "assets/lingology-logo-dark.png", 
         gradient: "gradient-lingology",
         isDefault: true,
-        logoType: "image"
+        logoType: "image",
+        category: "PROD",
+        notes: ""
     },
     {
         id: "lingology-app",
@@ -19,16 +21,20 @@ const DEFAULT_APPS = [
         icon: "assets/lingology-logo-light.png", 
         gradient: "gradient-emerald",
         isDefault: true,
-        logoType: "image"
+        logoType: "image",
+        category: "APP",
+        notes: ""
     },
     {
         id: "tutorapp-dashboard",
         name: "TutorApp Dashboard",
         url: "https://tutorapp-khaki.vercel.app/dashboard",
-        icon: "assets/lingology-logo-dark.png", // Ta sama ikonka co lingology.pl!
+        icon: "assets/lingology-logo-dark.png", 
         gradient: "gradient-lingology",
         isDefault: true,
-        logoType: "image"
+        logoType: "image",
+        category: "STAGE",
+        notes: ""
     }
 ];
 
@@ -43,8 +49,13 @@ const customApps = storedApps.filter(app => !app.isDefault);
 
 const mergedDefaultApps = DEFAULT_APPS.map(defaultApp => {
     const matchInStorage = storedApps.find(app => app.id === defaultApp.id);
-    if (matchInStorage && matchInStorage.notes) {
-        return { ...defaultApp, notes: matchInStorage.notes };
+    if (matchInStorage) {
+        // Zachowujemy notatki oraz kategorię, jeśli została zmodyfikowana
+        return { 
+            ...defaultApp, 
+            notes: matchInStorage.notes || "",
+            category: matchInStorage.category || defaultApp.category
+        };
     }
     return defaultApp;
 });
@@ -84,28 +95,98 @@ const pModalNotes = document.getElementById("p-modal-notes");
 const pNotesSaveStatus = document.getElementById("p-notes-save-status");
 const btnGeneratePrompt = document.getElementById("btn-generate-prompt");
 
-// Zmienna globalna trzymająca ID aktualnie otwartego projektu w modalu szczegółów
+// Theme Toggle
+const btnThemeToggle = document.getElementById("btn-theme-toggle");
+
+// Developer Toolbox Widget
+const toolboxTabs = document.querySelectorAll(".toolbox-tab");
+const toolboxInput = document.getElementById("toolbox-input");
+const toolboxOutput = document.getElementById("toolbox-output");
+const btnToolboxRun = document.getElementById("btn-toolbox-run");
+const btnToolboxCopy = document.getElementById("btn-toolbox-copy");
+
+// Command Palette
+const cmdPalette = document.getElementById("cmd-palette");
+const cmdPaletteInput = document.getElementById("cmd-palette-input");
+const cmdPaletteResults = document.getElementById("cmd-palette-results");
+
+// Globalne stany
 let activeProjectId = null;
+let activeToolboxTab = "json"; // json | base64 | url
+let selectedCmdIndex = 0;
+let filteredCommands = [];
+
+// -------------------------------------------------------------
+// MOTYW LIGHT / DARK (THEME TOGGLE)
+// -------------------------------------------------------------
+function initTheme() {
+    const savedTheme = localStorage.getItem("launchpad_theme") || "light";
+    if (savedTheme === "dark") {
+        document.body.classList.add("dark-theme");
+        btnThemeToggle.innerHTML = `<i class="fa-solid fa-sun"></i>`;
+    } else {
+        document.body.classList.remove("dark-theme");
+        btnThemeToggle.innerHTML = `<i class="fa-solid fa-moon"></i>`;
+    }
+}
+
+btnThemeToggle.addEventListener("click", () => {
+    const isDark = document.body.classList.toggle("dark-theme");
+    if (isDark) {
+        localStorage.setItem("launchpad_theme", "dark");
+        btnThemeToggle.innerHTML = `<i class="fa-solid fa-sun"></i>`;
+        showToast("Przełączono na motyw ciemny! 🌌");
+    } else {
+        localStorage.setItem("launchpad_theme", "light");
+        btnThemeToggle.innerHTML = `<i class="fa-solid fa-moon"></i>`;
+        showToast("Przełączono na motyw jasny! ☀️");
+    }
+});
+
+// -------------------------------------------------------------
+// LIVE HEALTH CHECKER (APLIKACJE STATUS ONLINE/OFFLINE)
+// -------------------------------------------------------------
+async function checkAppStatuses() {
+    apps.forEach(async (app) => {
+        const dot = document.querySelector(`.status-dot[data-ping-id="${app.id}"]`);
+        const text = document.querySelector(`.status-text[data-status-text-id="${app.id}"]`);
+        
+        if (!dot || !text) return;
+        
+        try {
+            // mode: 'no-cors' wysyła ciche zapytanie. Nawet jeśli CORS zablokuje odczyt odpowiedzi,
+            // fakt, że serwer odpowiedział oznacza, że jest ONLINE i usługa działa!
+            const controller = new AbortController();
+            const id = setTimeout(() => controller.abort(), 6000); // 6-sekundowy timeout
+            
+            await fetch(app.url, { 
+                mode: 'no-cors', 
+                cache: 'no-store',
+                signal: controller.signal
+            });
+            
+            clearTimeout(id);
+            
+            dot.className = "status-dot online";
+            text.textContent = "Online";
+        } catch (error) {
+            dot.className = "status-dot offline";
+            text.textContent = "Offline";
+        }
+    });
+}
 
 // -------------------------------------------------------------
 // APILKACJE - RENDEROWANIE SIATKI (PRISTINE CARDS)
 // -------------------------------------------------------------
-
-function getCleanDomain(url) {
-    try {
-        const hostname = new URL(url).hostname;
-        return hostname.replace("www.", "");
-    } catch (e) {
-        return url.replace("https://", "").replace("http://", "").split("/")[0];
-    }
-}
-
 function renderApps(filterQuery = "") {
     appsGrid.innerHTML = "";
     
     const filteredApps = apps.filter(app => {
         const query = filterQuery.toLowerCase();
-        return app.name.toLowerCase().includes(query) || app.url.toLowerCase().includes(query);
+        return app.name.toLowerCase().includes(query) || 
+               app.url.toLowerCase().includes(query) ||
+               (app.category && app.category.toLowerCase().includes(query));
     });
 
     appsCount.textContent = `${filteredApps.length} ${getPolishAppNoun(filteredApps.length)}`;
@@ -157,13 +238,15 @@ function renderApps(filterQuery = "") {
         // Wskaźnik, czy projekt posiada zapisane notatki
         const hasNotes = app.notes && app.notes.trim().length > 0;
         const notesIndicatorHtml = hasNotes ? `
-            <div class="card-notes-indicator" style="margin-top: 8px; font-size: 0.72rem; color: #f97316; font-weight: 600; display: flex; align-items: center; gap: 4px;">
+            <div class="card-notes-indicator" style="margin-top: 6px; font-size: 0.72rem; color: #f97316; font-weight: 600; display: flex; align-items: center; gap: 4px;">
                 <i class="fa-regular fa-clipboard"></i> Zapisane poprawki
-                <span class="notes-dot animate-pulse" style="margin-left: 2px;"></span>
             </div>
         ` : "";
 
-        // Ultra-czysta i minimalistyczna struktura kafelka
+        // Renderowanie dynamicznej kategorii
+        const categoryName = app.category || "PROD";
+
+        // Ultra-czysta i minimalistyczna struktura kafelka z live pingiem i badgem kategorii
         card.innerHTML = `
             <div class="card-actions">
                 <button class="action-btn copy-btn" title="Kopiuj link" data-action="copy">
@@ -183,15 +266,18 @@ function renderApps(filterQuery = "") {
                     <i class="fa-solid fa-link" style="font-size: 0.65rem; opacity: 0.6;"></i>
                     ${getCleanDomain(app.url)}
                 </div>
+                <div class="status-container">
+                    <span class="status-dot checking" data-ping-id="${app.id}"></span>
+                    <span class="status-text" data-status-text-id="${app.id}">Checking...</span>
+                </div>
                 ${notesIndicatorHtml}
             </div>
+            <span class="category-badge">${categoryName}</span>
         `;
 
-        // Logika kliknięcia na kafelek
         card.addEventListener("click", (e) => {
             const actionBtn = e.target.closest(".action-btn");
             if (actionBtn) {
-                // Zapobieganie wywołaniu modala przy kliknięciu w akcje (usuwanie, kopiowanie)
                 e.preventDefault();
                 e.stopPropagation();
                 const action = actionBtn.getAttribute("data-action");
@@ -201,7 +287,6 @@ function renderApps(filterQuery = "") {
                     deleteApp(app.id);
                 }
             } else {
-                // Otwieramy szczegóły projektu zamiast bezpośredniego linku
                 e.preventDefault();
                 e.stopPropagation();
                 openProjectDetailsModal(app.id);
@@ -210,65 +295,25 @@ function renderApps(filterQuery = "") {
 
         appsGrid.appendChild(card);
     });
-}
 
-function getPolishAppNoun(number) {
-    if (number === 1) return "aplikacja";
-    if (number >= 2 && number <= 4) return "aplikacje";
-    return "aplikacji";
-}
-
-function copyToClipboard(text) {
-    navigator.clipboard.writeText(text).then(() => {
-        showToast("Skopiowano link do schowka! 📋");
-    }).catch(err => {
-        showToast("Nie udało się skopiować linku.");
-    });
-}
-
-function deleteApp(id) {
-    if (confirm("Czy na pewno chcesz usunąć tę aplikację ze swojego pulpitu? Wraz z nią usuniesz przypisane notatki.")) {
-        apps = apps.filter(app => app.id !== id);
-        localStorage.setItem("launchpad_apps", JSON.stringify(apps));
-        renderApps(searchInput.value);
-        showToast("Aplikacja została usunięta! 🗑️");
-    }
-}
-
-function showToast(message) {
-    toast.querySelector(".toast-message").textContent = message;
-    toast.classList.add("show");
-    
-    if (window.toastTimeout) {
-        clearTimeout(window.toastTimeout);
-    }
-    
-    window.toastTimeout = setTimeout(() => {
-        toast.classList.remove("show");
-    }, 3000);
+    // Uruchomienie sprawdzania statusów po wyrenderowaniu kart
+    setTimeout(checkAppStatuses, 100);
 }
 
 // -------------------------------------------------------------
-// MODAL SZCZEGÓŁÓW PROJEKTU (PROJECT DETAILS MODAL)
+// DETALE PROJEKTU MODAL (PROJEKT DETAILS MODAL)
 // -------------------------------------------------------------
-
 function openProjectDetailsModal(appId) {
     const app = apps.find(a => a.id === appId);
     if (!app) return;
 
     activeProjectId = appId;
 
-    // Uzupłenienie danych w modalu szczegółów
     pModalName.textContent = app.name;
-    
-    // Link tekstowy do domeny
     pModalUrl.href = app.url;
     pModalUrl.querySelector("span").textContent = getCleanDomain(app.url);
-
-    // Przycisk uruchamiania
     btnPModalLaunch.href = app.url;
 
-    // Dynamiczne renderowanie ikony w nagłówku modala
     pModalIcon.className = `app-icon-container icon-${app.gradient || 'gradient-cyber'}`;
     let iconHtml = "";
     if (app.logoType === "image") {
@@ -280,11 +325,9 @@ function openProjectDetailsModal(appId) {
     }
     pModalIcon.innerHTML = iconHtml;
 
-    // Załadowanie notatek
     pModalNotes.value = app.notes || "";
     pNotesSaveStatus.classList.remove("show");
 
-    // Wyświetlenie modala
     projectDetailsModal.classList.add("active");
     pModalNotes.focus();
 }
@@ -292,11 +335,10 @@ function openProjectDetailsModal(appId) {
 function closeProjectDetailsModal() {
     projectDetailsModal.classList.remove("active");
     activeProjectId = null;
-    // Odświeżamy siatkę aplikacji, aby zaktualizować status kropki (notatek) na kafelku
     renderApps(searchInput.value);
 }
 
-// Obsługa autozapisu notatek wewnątrz modala szczegółów
+// Autozapis notatek w modalu
 let pNotesTimeout = null;
 pModalNotes.addEventListener("input", () => {
     if (!activeProjectId) return;
@@ -308,7 +350,6 @@ pModalNotes.addEventListener("input", () => {
     pNotesTimeout = setTimeout(() => {
         const textValue = pModalNotes.value;
 
-        // Aktualizujemy notatki w pamięci
         const appIndex = apps.findIndex(a => a.id === activeProjectId);
         if (appIndex !== -1) {
             apps[appIndex].notes = textValue;
@@ -323,12 +364,7 @@ pModalNotes.addEventListener("input", () => {
     }, 600);
 });
 
-// Zapobiegamy aktywacji skrótów klawiszowych w pulpicie podczas pisania notatek w modalu szczegółów
-pModalNotes.addEventListener("keydown", (e) => {
-    e.stopPropagation();
-});
-
-// GENERATOR PROMPTÓW DLA CHATGPT
+// GENERATOR PROMPTÓW CHATGPT
 btnGeneratePrompt.addEventListener("click", () => {
     if (!activeProjectId) return;
 
@@ -342,7 +378,6 @@ btnGeneratePrompt.addEventListener("click", () => {
         return;
     }
 
-    // Ustrukturyzowany szablon profesjonalnego promptu deweloperskiego dla AI
     const promptText = `Jesteś wybitnym inżynierem oprogramowania i architektem IT. Zwracam się z prośbą o pomoc w wdrożeniu poprawek, naprawie błędów oraz rozwoju mojej aplikacji: ${app.name} (Adres URL projektu: ${app.url}).
 
 Oto lista uwag, błędów do naprawienia oraz planowanych funkcji z mojego notatnika projektowego:
@@ -354,18 +389,254 @@ Proszę Cię o szczegółową analizę każdego z powyższych punktów i przygot
 1. Ustrukturyzowanego planu działania krok-po-kroku (Action Plan) uporządkowanego od kwestii krytycznych po detale wizualne.
 2. Zaproponowanie gotowych, zoptymalizowanych rozwiązań technicznych, architektury kodu, wskazówek implementacyjnych oraz konkretnych fragmentów kodu w celach refaktoryzacji, które pomogą mi zaimplementować te poprawki w najprostszy i najbardziej bezawaryjny sposób.`;
 
-    // Kopiowanie do schowka
     navigator.clipboard.writeText(promptText).then(() => {
-        showToast("Skopiowano gotowy prompt dla ChatGPT do schowka! 🤖📋");
+        showToast("Skopiowano prompt dla ChatGPT do schowka! 🤖📋");
     }).catch(err => {
-        showToast("Nie udało się automatycznie skopiować promptu.");
+        showToast("Nie udało się skopiować promptu.");
     });
+});
+
+// -------------------------------------------------------------
+// TOOLBOX DEWELOPERA (JSON, BASE64, URL COVERT/FORMAT)
+// -------------------------------------------------------------
+toolboxTabs.forEach(tab => {
+    tab.addEventListener("click", () => {
+        toolboxTabs.forEach(t => t.classList.remove("active"));
+        tab.classList.add("active");
+        
+        activeToolboxTab = tab.getAttribute("data-tab");
+        toolboxInput.value = "";
+        toolboxOutput.value = "";
+        
+        // Dynamiczny placeholder dla lepszego UX
+        if (activeToolboxTab === "json") {
+            toolboxInput.placeholder = "Wklej minifikowany JSON, aby go ustrukturyzować...";
+        } else if (activeToolboxTab === "base64") {
+            toolboxInput.placeholder = "Wklej tekst do zakodowania LUB zakodowany Base64 do odkodowania (auto-detekcja)...";
+        } else {
+            toolboxInput.placeholder = "Wklej URL do odkodowania LUB tekst do zakodowania (auto-detekcja)...";
+        }
+    });
+});
+
+// Uruchamianie konwersji
+btnToolboxRun.addEventListener("click", () => {
+    const input = toolboxInput.value.trim();
+    if (!input) {
+        toolboxOutput.value = "Błąd: Brak danych wejściowych!";
+        return;
+    }
+
+    if (activeToolboxTab === "json") {
+        try {
+            const parsed = JSON.parse(input);
+            toolboxOutput.value = JSON.stringify(parsed, null, 4);
+            showToast("Sformatowano JSON! 🛠️");
+        } catch (e) {
+            toolboxOutput.value = `Błąd JSON: Niepoprawny format danych!\n\nSzczegóły: ${e.message}`;
+        }
+    } 
+    else if (activeToolboxTab === "base64") {
+        try {
+            // Inteligentna auto-detekcja Base64:
+            // Próbujemy zdekodować, a jeśli się uda i wynik to tekst ASCII/printable - dekodujemy. Inaczej kodujemy!
+            const decoded = atob(input);
+            if (/^[\x00-\x7F]*$/.test(decoded)) {
+                toolboxOutput.value = decoded;
+                showToast("Odkodowano z Base64! 🔓");
+            } else {
+                throw new Error("Not plain text");
+            }
+        } catch (e) {
+            // Kodowanie
+            toolboxOutput.value = btoa(unescape(encodeURIComponent(input))); // Obsługa polskich znaków utf-8
+            showToast("Zakodowano do Base64! 🔒");
+        }
+    } 
+    else if (activeToolboxTab === "url") {
+        // Auto-detekcja URL
+        if (input.includes("%")) {
+            try {
+                toolboxOutput.value = decodeURIComponent(input);
+                showToast("Odkodowano adres URL! 🔓");
+            } catch (e) {
+                toolboxOutput.value = encodeURIComponent(input);
+                showToast("Zakodowano adres URL! 🔒");
+            }
+        } else {
+            toolboxOutput.value = encodeURIComponent(input);
+            showToast("Zakodowano adres URL! 🔒");
+        }
+    }
+});
+
+// Kopiowanie wyniku z toolboxa
+btnToolboxCopy.addEventListener("click", () => {
+    const output = toolboxOutput.value.trim();
+    if (!output || output.startsWith("Błąd:")) {
+        showToast("Brak poprawnego wyniku do skopiowania!");
+        return;
+    }
+    
+    navigator.clipboard.writeText(output).then(() => {
+        showToast("Skopiowano wynik z Toolboxa! 📋");
+    });
+});
+
+// Zapobiegamy skrótom globalnym podczas pisania w toolboxie
+[toolboxInput, toolboxOutput].forEach(el => {
+    el.addEventListener("keydown", (e) => {
+        e.stopPropagation();
+    });
+});
+
+// -------------------------------------------------------------
+// COMMAND PALETTE (RAYCAST / ALFRED STYLE LOGIC)
+// -------------------------------------------------------------
+function buildCommandsList() {
+    const cmdList = [];
+
+    // Dodanie komend systemowych/globalnych
+    cmdList.push({
+        title: "Dodaj nową aplikację",
+        category: "SYSTEM",
+        icon: "fa-solid fa-plus",
+        action: () => openModal()
+    });
+    cmdList.push({
+        title: "Przełącz motyw (Jasny / Ciemny)",
+        category: "SYSTEM",
+        icon: "fa-solid fa-circle-half-stroke",
+        action: () => btnThemeToggle.click()
+    });
+    cmdList.push({
+        title: "Wyczyść Scratchpad (Główny Notes)",
+        category: "SYSTEM",
+        icon: "fa-solid fa-trash-can",
+        action: () => btnClearScratchpad.click()
+    });
+
+    // Dynamiczne komendy dla każdego projektu
+    apps.forEach(app => {
+        cmdList.push({
+            title: `Pokaż szczegóły: ${app.name}`,
+            category: "PROJEKT",
+            icon: "fa-solid fa-circle-info",
+            action: () => openProjectDetailsModal(app.id)
+        });
+        cmdList.push({
+            title: `Uruchom aplikację: ${app.name}`,
+            category: "LAUNCH",
+            icon: "fa-solid fa-rocket",
+            action: () => window.open(app.url, "_blank")
+        });
+    });
+
+    return cmdList;
+}
+
+function openCommandPalette() {
+    selectedCmdIndex = 0;
+    cmdPaletteInput.value = "";
+    cmdPalette.classList.add("active");
+    renderCommandResults();
+    setTimeout(() => cmdPaletteInput.focus(), 150);
+}
+
+function closeCommandPalette() {
+    cmdPalette.classList.remove("active");
+    cmdPaletteInput.blur();
+}
+
+function renderCommandResults() {
+    cmdPaletteResults.innerHTML = "";
+    const allCommands = buildCommandsList();
+    const query = cmdPaletteInput.value.toLowerCase().trim();
+
+    // Filtrowanie komend na bazie wyszukiwania
+    filteredCommands = allCommands.filter(cmd => {
+        return cmd.title.toLowerCase().includes(query) || cmd.category.toLowerCase().includes(query);
+    });
+
+    if (filteredCommands.length === 0) {
+        cmdPaletteResults.innerHTML = `
+            <div style="text-align: center; padding: 20px; color: var(--text-muted); font-size: 0.85rem;">
+                Brak pasujących poleceń...
+            </div>
+        `;
+        return;
+    }
+
+    filteredCommands.forEach((cmd, index) => {
+        const item = document.createElement("div");
+        item.className = "cmd-item";
+        if (index === selectedCmdIndex) {
+            item.classList.add("selected");
+        }
+
+        item.innerHTML = `
+            <div class="cmd-item-left">
+                <i class="${cmd.icon}"></i>
+                <span>${cmd.title}</span>
+            </div>
+            <span class="cmd-item-badge">${cmd.category}</span>
+        `;
+
+        item.addEventListener("click", () => {
+            cmd.action();
+            closeCommandPalette();
+        });
+
+        // Autoscroll elementu do widoku przy sterowaniu strzałkami
+        if (index === selectedCmdIndex) {
+            setTimeout(() => {
+                item.scrollIntoView({ block: "nearest" });
+            }, 20);
+        }
+
+        cmdPaletteResults.appendChild(item);
+    });
+}
+
+// Zdarzenia w Command Palette
+cmdPaletteInput.addEventListener("input", () => {
+    selectedCmdIndex = 0;
+    renderCommandResults();
+});
+
+cmdPaletteInput.addEventListener("keydown", (e) => {
+    e.stopPropagation(); // Blokowanie globalnych hotkeyów podczas pisania
+
+    if (e.key === "ArrowDown") {
+        e.preventDefault();
+        selectedCmdIndex = (selectedCmdIndex + 1) % filteredCommands.length;
+        renderCommandResults();
+    } 
+    else if (e.key === "ArrowUp") {
+        e.preventDefault();
+        selectedCmdIndex = (selectedCmdIndex - 1 + filteredCommands.length) % filteredCommands.length;
+        renderCommandResults();
+    } 
+    else if (e.key === "Enter") {
+        e.preventDefault();
+        if (filteredCommands[selectedCmdIndex]) {
+            filteredCommands[selectedCmdIndex].action();
+            closeCommandPalette();
+        }
+    } 
+    else if (e.key === "Escape") {
+        e.preventDefault();
+        closeCommandPalette();
+    }
+});
+
+cmdPalette.addEventListener("click", (e) => {
+    if (e.target === cmdPalette) closeCommandPalette();
 });
 
 // -------------------------------------------------------------
 // FORMULARZ DODAWANIA NOWEJ APLIKACJI (MODAL DODAWANIA)
 // -------------------------------------------------------------
-
 function openModal() {
     addAppModal.classList.add("active");
     document.getElementById("app-name").focus();
@@ -381,6 +652,7 @@ addAppForm.addEventListener("submit", (e) => {
     
     const name = document.getElementById("app-name").value.trim();
     const url = document.getElementById("app-url").value.trim();
+    const category = document.getElementById("app-category").value.trim().toUpperCase() || "PROD";
     const iconInput = document.getElementById("app-icon").value.trim();
     const gradient = document.querySelector('input[name="app-gradient"]:checked').value;
     
@@ -403,6 +675,7 @@ addAppForm.addEventListener("submit", (e) => {
         gradient,
         isDefault: false,
         logoType,
+        category,
         notes: "" 
     };
 
@@ -433,19 +706,16 @@ projectDetailsModal.addEventListener("click", (e) => {
 function updateTime() {
     const now = new Date();
     
-    // Zegar
     let hours = now.getHours().toString().padStart(2, "0");
     let minutes = now.getMinutes().toString().padStart(2, "0");
     let seconds = now.getSeconds().toString().padStart(2, "0");
     clockTime.textContent = `${hours}:${minutes}:${seconds}`;
 
-    // Data po polsku
     const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
     let dateStr = now.toLocaleDateString('pl-PL', options);
     dateStr = dateStr.charAt(0).toUpperCase() + dateStr.slice(1);
     clockDate.textContent = dateStr;
 
-    // Powitanie w zależności od godziny
     const hour = now.getHours();
     const welcomeSubtext = document.querySelector(".logo-text p");
     if (welcomeSubtext) {
@@ -513,19 +783,35 @@ btnClearScratchpad.addEventListener("click", () => {
     }
 });
 
+// Zapobiegamy skrótom podczas pisania w notatniku głównym
+scratchpad.addEventListener("keydown", (e) => {
+    e.stopPropagation();
+});
+
 // -------------------------------------------------------------
-// WYSZUKIWANIE & FILTROWANIE
+// WYSZUKIWANIE & FILTROWANIE W PASKU
 // -------------------------------------------------------------
 searchInput.addEventListener("input", (e) => {
     renderApps(e.target.value);
 });
 
 // -------------------------------------------------------------
-// SKRÓTY KLAWISZOWE
+// SKRÓTY KLAWISZOWE (GLOBALNE)
 // -------------------------------------------------------------
 document.addEventListener("keydown", (e) => {
     const activeEl = document.activeElement;
     const isTyping = activeEl.tagName === "INPUT" || activeEl.tagName === "TEXTAREA";
+
+    // Wywołanie Command Palette: Ctrl + K lub Cmd + K
+    if ((e.ctrlKey || e.metaKey) && e.key === "k") {
+        e.preventDefault();
+        if (cmdPalette.classList.contains("active")) {
+            closeCommandPalette();
+        } else {
+            openCommandPalette();
+        }
+        return;
+    }
 
     if (!isTyping) {
         if (e.key === "/") {
@@ -558,6 +844,8 @@ document.addEventListener("keydown", (e) => {
                 closeModal();
             } else if (projectDetailsModal.classList.contains("active")) {
                 closeProjectDetailsModal();
+            } else if (cmdPalette.classList.contains("active")) {
+                closeCommandPalette();
             } else if (activeEl === searchInput) {
                 searchInput.value = "";
                 renderApps();
@@ -570,4 +858,5 @@ document.addEventListener("keydown", (e) => {
 // -------------------------------------------------------------
 // START APLIKACJI
 // -------------------------------------------------------------
+initTheme();
 renderApps();

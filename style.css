@@ -1128,3 +1128,502 @@ h1, h2, h3, h4, .clock-widget, .logo-text h1 {
         text-align: center;
     }
 }
+
+/* =============================================================
+   DODATKOWE STYLE WORKSPACE 2.0 (NOWE FUNKCJE DEWELOPERSKIE)
+   ============================================================= */
+
+/* -------------------------------------------------------------
+   KULTOWY DEEP SPACE DARK MODE (NADAPISANIE ZMIENNYCH CSS)
+   ------------------------------------------------------------- */
+body.dark-theme {
+    /* Nadpisanie tokenów dla Ciemnego Motywu */
+    --bg-base: #0a0f1d;
+    --bg-ambient: radial-gradient(circle at 50% 50%, #111a2e 0%, #070a14 100%);
+    --text-primary: #f3f4f6;
+    --text-secondary: #9ca3af;
+    --text-muted: #6b7280;
+
+    /* Glassmorphism Dark */
+    --glass-bg: rgba(15, 23, 42, 0.6);
+    --glass-bg-hover: rgba(22, 33, 59, 0.8);
+    --glass-border: rgba(255, 255, 255, 0.08);
+    --glass-border-hover: rgba(255, 255, 255, 0.18);
+    --glass-shadow: 0 10px 45px rgba(0, 0, 0, 0.5);
+    
+    /* Akcenty w Dark Mode (Jasny błękit) */
+    --color-accent: #00f2fe;
+    --color-accent-rgb: 0, 242, 254;
+    --color-accent-glow: rgba(0, 242, 254, 0.25);
+}
+
+/* Dostosowanie elementów w motywie ciemnym */
+body.dark-theme h1, 
+body.dark-theme h2, 
+body.dark-theme h3, 
+body.dark-theme h4 {
+    color: #ffffff;
+}
+
+body.dark-theme .logo-text h1 {
+    background: linear-gradient(to right, #ffffff, #d1d5db);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+body.dark-theme .app-header {
+    background: var(--glass-bg);
+    border-color: var(--glass-border);
+}
+
+body.dark-theme .app-card {
+    background: rgba(15, 23, 42, 0.7) !important;
+    border-color: rgba(255, 255, 255, 0.06);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+}
+
+body.dark-theme .app-card:hover {
+    background: rgba(22, 33, 59, 0.85) !important;
+    border-color: var(--card-glow-color, rgba(0, 242, 254, 0.3));
+    box-shadow: 0 12px 30px rgba(0, 0, 0, 0.4),
+                0 0 20px var(--card-glow-color, rgba(0, 242, 254, 0.1));
+}
+
+body.dark-theme .app-title {
+    color: #ffffff;
+}
+
+body.dark-theme .clock-widget #clock-time {
+    color: #ffffff;
+}
+
+body.dark-theme .widget, 
+body.dark-theme .modal-card,
+body.dark-theme .toast {
+    background: rgba(13, 20, 35, 0.9);
+    border-color: rgba(255, 255, 255, 0.08);
+    box-shadow: 0 15px 40px rgba(0, 0, 0, 0.4);
+}
+
+body.dark-theme .project-notes-section textarea,
+body.dark-theme .widget-body textarea,
+body.dark-theme .form-group input,
+body.dark-theme .toolbox-content textarea {
+    background: rgba(0, 0, 0, 0.35);
+    border-color: rgba(255, 255, 255, 0.08);
+    color: #ffffff;
+}
+
+body.dark-theme .project-notes-section textarea:focus,
+body.dark-theme .widget-body textarea:focus,
+body.dark-theme .form-group input:focus,
+body.dark-theme .toolbox-content textarea:focus,
+body.dark-theme .search-box input:focus {
+    border-color: var(--color-accent);
+    background: rgba(0, 0, 0, 0.45);
+}
+
+body.dark-theme .search-box input {
+    background: rgba(255, 255, 255, 0.04);
+    border-color: rgba(255, 255, 255, 0.08);
+    color: #ffffff;
+}
+
+body.dark-theme .toolbox-tab {
+    background: rgba(255, 255, 255, 0.03);
+    border-color: rgba(255, 255, 255, 0.06);
+    color: var(--text-secondary);
+}
+
+body.dark-theme .toolbox-tab.active {
+    background: var(--color-accent);
+    border-color: var(--color-accent);
+    color: #0b1528;
+    box-shadow: 0 0 10px rgba(0, 242, 254, 0.3);
+}
+
+body.dark-theme .key {
+    background: rgba(255, 255, 255, 0.06);
+    border-color: rgba(255, 255, 255, 0.1);
+    color: #ffffff;
+}
+
+body.dark-theme .action-btn {
+    background: rgba(255, 255, 255, 0.05);
+    border-color: rgba(255, 255, 255, 0.08);
+    color: var(--text-secondary);
+}
+
+body.dark-theme .action-btn:hover {
+    background: var(--color-accent);
+    color: #0b1528;
+    border-color: var(--color-accent);
+}
+
+body.dark-theme .ambient-glow .blob-1 {
+    background: radial-gradient(circle, rgba(0, 242, 254, 0.15) 0%, rgba(0,0,0,0) 70%);
+}
+body.dark-theme .ambient-glow .blob-2 {
+    background: radial-gradient(circle, rgba(13, 148, 136, 0.1) 0%, rgba(0,0,0,0) 70%);
+}
+
+/* -------------------------------------------------------------
+   PRZYCISK PRZEŁĄCZANIA MOTYWÓW (THEME TOGGLE)
+   ------------------------------------------------------------- */
+.theme-toggle-btn {
+    width: 38px;
+    height: 38px;
+    border-radius: 10px;
+    background: #ffffff;
+    border: 1px solid rgba(13, 148, 136, 0.15);
+    color: var(--text-secondary);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.05rem;
+    transition: var(--transition-fast);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.02);
+    margin-right: 14px;
+}
+
+.theme-toggle-btn:hover {
+    background: rgba(13, 148, 136, 0.06);
+    color: var(--color-accent);
+    border-color: var(--color-accent);
+    transform: scale(1.05);
+}
+
+body.dark-theme .theme-toggle-btn {
+    background: rgba(15, 23, 42, 0.6);
+    border-color: rgba(255, 255, 255, 0.08);
+    color: #ffffff;
+}
+
+body.dark-theme .theme-toggle-btn:hover {
+    background: rgba(255, 255, 255, 0.05);
+    color: var(--color-accent);
+    border-color: var(--color-accent);
+}
+
+/* -------------------------------------------------------------
+   WSKAŹNIK LIVE HEALTH PING (STATUS ONLINE / OFFLINE)
+   ------------------------------------------------------------- */
+.status-container {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.72rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+    margin-top: 4px;
+}
+
+.status-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    display: inline-block;
+    transition: all 0.3s ease;
+}
+
+.status-dot.checking {
+    background: var(--text-muted);
+    box-shadow: 0 0 4px var(--text-muted);
+    animation: dotPulse 1.2s infinite alternate ease-in-out;
+}
+
+.status-dot.online {
+    background: #10b981;
+    box-shadow: 0 0 6px #10b981;
+}
+
+.status-dot.offline {
+    background: #ef4444;
+    box-shadow: 0 0 6px #ef4444;
+}
+
+@keyframes dotPulse {
+    0% { opacity: 0.3; transform: scale(0.9); }
+    100% { opacity: 1; transform: scale(1.1); }
+}
+
+/* -------------------------------------------------------------
+   KATEGORYZACJA KAFELKÓW (TAG / CATEGORY BADGE)
+   ------------------------------------------------------------- */
+.category-badge {
+    position: absolute;
+    bottom: 20px;
+    right: 20px;
+    font-size: 0.64rem;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    padding: 2px 7px;
+    border-radius: 4px;
+    text-transform: uppercase;
+    background: rgba(13, 148, 136, 0.06);
+    border: 1px solid rgba(13, 148, 136, 0.1);
+    color: var(--color-accent);
+}
+
+body.dark-theme .category-badge {
+    background: rgba(255, 255, 255, 0.04);
+    border-color: rgba(255, 255, 255, 0.08);
+    color: var(--text-secondary);
+}
+
+/* -------------------------------------------------------------
+   COMMAND PALETTE (STYL ALFRED / RAYCAST)
+   ------------------------------------------------------------- */
+.cmd-palette-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(15, 23, 42, 0.3);
+    backdrop-filter: blur(8px);
+    z-index: 3000;
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    padding-top: 15vh;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity var(--transition-normal);
+}
+
+.cmd-palette-overlay.active {
+    opacity: 1;
+    pointer-events: auto;
+}
+
+.cmd-palette-card {
+    background: #ffffff;
+    border: 1px solid rgba(13, 148, 136, 0.18);
+    border-radius: 16px;
+    width: 100%;
+    max-width: 600px;
+    box-shadow: 0 20px 50px rgba(13, 148, 136, 0.12);
+    overflow: hidden;
+    transform: translateY(-20px);
+    transition: transform var(--transition-normal);
+}
+
+.cmd-palette-overlay.active .cmd-palette-card {
+    transform: translateY(0);
+}
+
+body.dark-theme .cmd-palette-card {
+    background: rgba(13, 20, 35, 0.96);
+    border-color: rgba(255, 255, 255, 0.08);
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.6);
+}
+
+.cmd-palette-search {
+    display: flex;
+    align-items: center;
+    padding: 14px 18px;
+    border-bottom: 1px solid rgba(13, 148, 136, 0.1);
+    gap: 12px;
+}
+
+body.dark-theme .cmd-palette-search {
+    border-bottom-color: rgba(255, 255, 255, 0.06);
+}
+
+.cmd-palette-icon {
+    color: var(--color-accent);
+    font-size: 1.1rem;
+}
+
+.cmd-palette-search input {
+    flex: 1;
+    background: transparent;
+    border: none;
+    color: var(--text-primary);
+    font-size: 1rem;
+    font-family: inherit;
+}
+
+.cmd-palette-search input:focus {
+    outline: none;
+}
+
+.cmd-palette-hint {
+    font-size: 0.68rem;
+    color: var(--text-muted);
+    background: rgba(13, 148, 136, 0.05);
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-weight: 600;
+}
+
+body.dark-theme .cmd-palette-hint {
+    background: rgba(255, 255, 255, 0.04);
+}
+
+.cmd-palette-esc {
+    font-size: 0.68rem;
+    color: var(--text-muted);
+    border: 1px solid rgba(13, 148, 136, 0.15);
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-family: monospace;
+    font-weight: bold;
+}
+
+body.dark-theme .cmd-palette-esc {
+    border-color: rgba(255, 255, 255, 0.1);
+}
+
+.cmd-palette-results {
+    max-height: 320px;
+    overflow-y: auto;
+    padding: 8px;
+}
+
+.cmd-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 14px;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: var(--transition-fast);
+    font-size: 0.88rem;
+    color: var(--text-primary);
+    font-weight: 500;
+    gap: 10px;
+}
+
+.cmd-item-left {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.cmd-item-left i {
+    width: 16px;
+    text-align: center;
+    color: var(--text-secondary);
+}
+
+.cmd-item:hover, .cmd-item.selected {
+    background: var(--color-accent);
+    color: #ffffff;
+}
+
+body.dark-theme .cmd-item:hover, 
+body.dark-theme .cmd-item.selected {
+    color: #0b1528;
+}
+
+.cmd-item:hover .cmd-item-left i, 
+.cmd-item.selected .cmd-item-left i {
+    color: inherit;
+}
+
+.cmd-item-badge {
+    font-size: 0.68rem;
+    padding: 2px 6px;
+    background: rgba(13, 148, 136, 0.06);
+    color: var(--color-accent);
+    border-radius: 4px;
+    text-transform: uppercase;
+    font-weight: 700;
+}
+
+.cmd-item:hover .cmd-item-badge, 
+.cmd-item.selected .cmd-item-badge {
+    background: rgba(255, 255, 255, 0.2);
+    color: inherit;
+}
+
+/* -------------------------------------------------------------
+   TOOLBOX DEWELOPERA W PANELU BOCZNYM (DEV TOOLBOX WIDGET)
+   ------------------------------------------------------------- */
+.toolbox-tabs {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 6px;
+    margin-bottom: 10px;
+}
+
+.toolbox-tab {
+    padding: 6px;
+    border-radius: 6px;
+    font-size: 0.74rem;
+    font-weight: 700;
+    cursor: pointer;
+    background: rgba(13, 148, 136, 0.04);
+    border: 1px solid rgba(13, 148, 136, 0.08);
+    color: var(--text-secondary);
+    transition: var(--transition-fast);
+    text-align: center;
+}
+
+.toolbox-tab:hover {
+    background: rgba(13, 148, 136, 0.08);
+}
+
+.toolbox-tab.active {
+    background: var(--color-accent);
+    border-color: var(--color-accent);
+    color: #ffffff;
+    box-shadow: 0 2px 6px rgba(13, 148, 136, 0.15);
+}
+
+body.dark-theme .toolbox-tab.active {
+    color: #0b1528;
+    box-shadow: 0 0 10px rgba(0, 242, 254, 0.25);
+}
+
+.toolbox-content {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.toolbox-content textarea {
+    width: 100%;
+    height: 70px;
+    background: #fcfdfd;
+    border: 1px solid rgba(13, 148, 136, 0.12);
+    border-radius: 8px;
+    padding: 8px;
+    font-size: 0.78rem;
+    font-family: 'Fira Code', 'Courier New', monospace;
+    resize: none;
+    transition: var(--transition-normal);
+}
+
+.toolbox-content textarea:focus {
+    outline: none;
+    border-color: var(--color-accent);
+    background: #ffffff;
+}
+
+.toolbox-actions {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.toolbox-actions .btn {
+    padding: 5px 12px;
+    border-radius: 6px;
+    font-size: 0.75rem;
+    font-weight: 600;
+}
+
+#toolbox-output {
+    height: 80px;
+    background: #f1f5f9;
+    border-color: rgba(13, 148, 136, 0.08);
+    cursor: default;
+}
+
+body.dark-theme #toolbox-output {
+    background: rgba(0, 0, 0, 0.2) !important;
+}
