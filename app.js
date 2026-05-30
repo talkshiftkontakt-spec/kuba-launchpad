@@ -2,13 +2,12 @@
 // DANE DOMYŚLNE & INTELIGENTNA SYNCHRONIZACJA LOCALSTORAGE
 // -------------------------------------------------------------
 
-// Zawsze najświeższe dane domyślne z kodu (gwarantuje poprawność ikon i logotypów)
 const DEFAULT_APPS = [
     {
         id: "lingology-pl",
         name: "Lingology.pl",
         url: "https://lingology.pl",
-        icon: "assets/lingology-logo-dark.png", // Zjawiskowe logo - ciemna wersja marki
+        icon: "assets/lingology-logo-dark.png", 
         gradient: "gradient-lingology",
         isDefault: true,
         logoType: "image"
@@ -17,7 +16,7 @@ const DEFAULT_APPS = [
         id: "lingology-app",
         name: "Lingology.app",
         url: "https://lingology.app",
-        icon: "assets/lingology-logo-light.png", // Jasne logo z morskim elementem
+        icon: "assets/lingology-logo-light.png", 
         gradient: "gradient-emerald",
         isDefault: true,
         logoType: "image"
@@ -26,7 +25,7 @@ const DEFAULT_APPS = [
         id: "tutorapp-dashboard",
         name: "TutorApp Dashboard",
         url: "https://tutorapp-khaki.vercel.app/dashboard",
-        icon: "fa-solid fa-graduation-cap", // Prawidłowa, edukacyjna ikona Graduation Cap
+        icon: "fa-solid fa-graduation-cap", 
         gradient: "gradient-tutor",
         isDefault: true,
         logoType: "icon"
@@ -36,15 +35,12 @@ const DEFAULT_APPS = [
 // Odczyt z localStorage z wbudowanym mechanizmem migracji i resetowania cache
 let storedApps = JSON.parse(localStorage.getItem("launchpad_apps")) || [];
 
-// Jeśli localStorage było puste, inicjalizujemy defaultami
 if (storedApps.length === 0) {
     storedApps = [...DEFAULT_APPS];
 }
 
-// Filtrujemy aplikacje dodane ręcznie przez użytkownika (custom)
 const customApps = storedApps.filter(app => !app.isDefault);
 
-// Mapujemy najświeższe defaulty z kodu, ale dbamy o zachowanie notatek, jeśli użytkownik jakieś u nas zapisał!
 const mergedDefaultApps = DEFAULT_APPS.map(defaultApp => {
     const matchInStorage = storedApps.find(app => app.id === defaultApp.id);
     if (matchInStorage && matchInStorage.notes) {
@@ -53,10 +49,7 @@ const mergedDefaultApps = DEFAULT_APPS.map(defaultApp => {
     return defaultApp;
 });
 
-// Łączymy: najnowsze defaulty z kodu (z zachowanymi notatkami) + ręcznie dodane linki użytkownika
 let apps = [...mergedDefaultApps, ...customApps];
-
-// Zapisujemy spójną strukturę do localStorage
 localStorage.setItem("launchpad_apps", JSON.stringify(apps));
 
 // -------------------------------------------------------------
@@ -73,15 +66,29 @@ const saveStatus = document.getElementById("save-status");
 const btnClearScratchpad = document.getElementById("btn-clear-scratchpad");
 const toast = document.getElementById("toast");
 
-// Modal
+// Add App Modal
 const addAppModal = document.getElementById("add-app-modal");
 const btnAddApp = document.getElementById("btn-add-app");
 const btnCloseModal = document.getElementById("btn-close-modal");
 const btnCancelModal = document.getElementById("btn-cancel-modal");
 const addAppForm = document.getElementById("add-app-form");
 
+// Project Details Modal
+const projectDetailsModal = document.getElementById("project-details-modal");
+const btnClosePModal = document.getElementById("btn-close-p-modal");
+const pModalName = document.getElementById("p-modal-name");
+const pModalUrl = document.getElementById("p-modal-url");
+const pModalIcon = document.getElementById("p-modal-icon");
+const btnPModalLaunch = document.getElementById("btn-p-modal-launch");
+const pModalNotes = document.getElementById("p-modal-notes");
+const pNotesSaveStatus = document.getElementById("p-notes-save-status");
+const btnGeneratePrompt = document.getElementById("btn-generate-prompt");
+
+// Zmienna globalna trzymająca ID aktualnie otwartego projektu w modalu szczegółów
+let activeProjectId = null;
+
 // -------------------------------------------------------------
-// DYNAMICZNE RENDEROWANIE SIATKI APLIKACJI & OBSŁUGA W KAFELKACH
+// APILKACJE - RENDEROWANIE SIATKI (PRISTINE CARDS)
 // -------------------------------------------------------------
 
 function getCleanDomain(url) {
@@ -147,11 +154,16 @@ function renderApps(filterQuery = "") {
             </button>
         ` : "";
 
-        // Generujemy kropkę dla aktywnych notatek w podglądzie
+        // Wskaźnik, czy projekt posiada zapisane notatki
         const hasNotes = app.notes && app.notes.trim().length > 0;
-        const notesDotHtml = hasNotes ? `<span class="notes-dot animate-pulse"></span>` : "";
+        const notesIndicatorHtml = hasNotes ? `
+            <div class="card-notes-indicator" style="margin-top: 8px; font-size: 0.72rem; color: #f97316; font-weight: 600; display: flex; align-items: center; gap: 4px;">
+                <i class="fa-regular fa-clipboard"></i> Zapisane poprawki
+                <span class="notes-dot animate-pulse" style="margin-left: 2px;"></span>
+            </div>
+        ` : "";
 
-        // Wstrzykiwanie struktury kafelka wraz z elastycznym notesem do poprawek
+        // Ultra-czysta i minimalistyczna struktura kafelka
         card.innerHTML = `
             <div class="card-actions">
                 <button class="action-btn copy-btn" title="Kopiuj link" data-action="copy">
@@ -171,27 +183,15 @@ function renderApps(filterQuery = "") {
                     <i class="fa-solid fa-link" style="font-size: 0.65rem; opacity: 0.6;"></i>
                     ${getCleanDomain(app.url)}
                 </div>
-            </div>
-            
-            <!-- STREFA NOTATEK DO POPRAWY -->
-            <div class="card-notes-area" data-id="${app.id}">
-                <div class="notes-toggle-btn" title="Pokaż/ukryj notatki do poprawy dla tego projektu">
-                    <i class="fa-regular fa-clipboard"></i> Notatki do poprawy
-                    ${notesDotHtml}
-                </div>
-                <div class="notes-dropdown-content">
-                    <textarea class="app-notes-textarea" placeholder="Co jest do poprawy w tym projekcie? Wpisz tutaj..." autocomplete="off">${app.notes || ""}</textarea>
-                    <div class="notes-save-indicator">
-                        <i class="fa-solid fa-circle-check"></i> Zapisano
-                    </div>
-                </div>
+                ${notesIndicatorHtml}
             </div>
         `;
 
-        // Logika kliknięć na akcje w karcie (kopiowanie, usuwanie)
+        // Logika kliknięcia na kafelek
         card.addEventListener("click", (e) => {
             const actionBtn = e.target.closest(".action-btn");
             if (actionBtn) {
+                // Zapobieganie wywołaniu modala przy kliknięciu w akcje (usuwanie, kopiowanie)
                 e.preventDefault();
                 e.stopPropagation();
                 const action = actionBtn.getAttribute("data-action");
@@ -200,99 +200,15 @@ function renderApps(filterQuery = "") {
                 } else if (action === "delete") {
                     deleteApp(app.id);
                 }
+            } else {
+                // Otwieramy szczegóły projektu zamiast bezpośredniego linku
+                e.preventDefault();
+                e.stopPropagation();
+                openProjectDetailsModal(app.id);
             }
         });
 
         appsGrid.appendChild(card);
-    });
-
-    // Podpięcie logiki rozwijania i autosave dla sekcji Notatek do Poprawy we wszystkich wyrenderowanych kartach
-    attachNotesListeners();
-}
-
-// Logika rozwijania notatników i autosave na poziomie pojedynczych kafelków
-function attachNotesListeners() {
-    const cards = appsGrid.querySelectorAll(".app-card");
-    cards.forEach(card => {
-        const appId = card.getAttribute("data-id");
-        const notesArea = card.querySelector(".card-notes-area");
-        const toggleBtn = card.querySelector(".notes-toggle-btn");
-        const textarea = card.querySelector(".app-notes-textarea");
-        const saveIndicator = card.querySelector(".notes-save-indicator");
-
-        // Kliknięcie w nagłówek rozwijania notatek
-        toggleBtn.addEventListener("click", (e) => {
-            e.preventDefault();
-            e.stopPropagation(); // Kluczowe: zapobiega otwarciu linku w karcie!
-            
-            const isActive = notesArea.classList.contains("active");
-
-            // Zamykamy inne otwarte notatniki dla ładu na ekranie
-            appsGrid.querySelectorAll(".card-notes-area").forEach(area => {
-                area.classList.remove("active");
-            });
-
-            if (!isActive) {
-                notesArea.classList.add("active");
-                // Automatycznie skupiamy kursor na polu tekstowym po otwarciu
-                setTimeout(() => textarea.focus(), 150);
-            }
-        });
-
-        // Zapobiegamy otwieraniu aplikacji przy kliknięciu/pisaniu w notesie kafelka
-        textarea.addEventListener("click", (e) => {
-            e.stopPropagation();
-        });
-        textarea.addEventListener("focus", (e) => {
-            e.stopPropagation();
-        });
-        textarea.addEventListener("keydown", (e) => {
-            e.stopPropagation(); // Blokuje aktywację skrótów klawiszowych w pulpicie podczas pisania notatki!
-        });
-
-        // Automatyczny zapis notatki z debounce
-        let notesTimeout = null;
-        textarea.addEventListener("input", (e) => {
-            e.stopPropagation();
-            
-            // Pokaż wizualny stan ładowania / zapisywania
-            saveIndicator.innerHTML = `<i class="fa-solid fa-spinner animate-spin"></i> Zapisywanie...`;
-            saveIndicator.classList.add("show");
-
-            clearTimeout(notesTimeout);
-            notesTimeout = setTimeout(() => {
-                const textValue = textarea.value;
-                
-                // Znajdujemy aplikację i aktualizujemy pole notatki
-                const appIndex = apps.findIndex(a => a.id === appId);
-                if (appIndex !== -1) {
-                    apps[appIndex].notes = textValue;
-                    localStorage.setItem("launchpad_apps", JSON.stringify(apps));
-                }
-
-                // Wizualizacja sukcesu zapisu
-                saveIndicator.innerHTML = `<i class="fa-solid fa-circle-check"></i> Zapisano`;
-                
-                // Aktualizujemy kropkę statusu przy nagłówku
-                const existingDot = toggleBtn.querySelector(".notes-dot");
-                if (textValue.trim().length > 0) {
-                    if (!existingDot) {
-                        const newDot = document.createElement("span");
-                        newDot.className = "notes-dot animate-pulse";
-                        toggleBtn.appendChild(newDot);
-                    }
-                } else {
-                    if (existingDot) {
-                        existingDot.remove();
-                    }
-                }
-
-                // Ukryj wskaźnik zapisu po chwili
-                setTimeout(() => {
-                    saveIndicator.classList.remove("show");
-                }, 1200);
-            }, 600);
-        });
     });
 }
 
@@ -333,8 +249,123 @@ function showToast(message) {
 }
 
 // -------------------------------------------------------------
-// MODAL - OBSŁUGA
+// MODAL SZCZEGÓŁÓW PROJEKTU (PROJECT DETAILS MODAL)
 // -------------------------------------------------------------
+
+function openProjectDetailsModal(appId) {
+    const app = apps.find(a => a.id === appId);
+    if (!app) return;
+
+    activeProjectId = appId;
+
+    // Uzupłenienie danych w modalu szczegółów
+    pModalName.textContent = app.name;
+    
+    // Link tekstowy do domeny
+    pModalUrl.href = app.url;
+    pModalUrl.querySelector("span").textContent = getCleanDomain(app.url);
+
+    // Przycisk uruchamiania
+    btnPModalLaunch.href = app.url;
+
+    // Dynamiczne renderowanie ikony w nagłówku modala
+    pModalIcon.className = `app-icon-container icon-${app.gradient || 'gradient-cyber'}`;
+    let iconHtml = "";
+    if (app.logoType === "image") {
+        iconHtml = `<img src="${app.icon}" alt="${app.name}" class="app-logo-img">`;
+    } else if (app.icon.startsWith("fa-")) {
+        iconHtml = `<i class="${app.icon}"></i>`;
+    } else {
+        iconHtml = `<span class="emoji">${app.icon}</span>`;
+    }
+    pModalIcon.innerHTML = iconHtml;
+
+    // Załadowanie notatek
+    pModalNotes.value = app.notes || "";
+    pNotesSaveStatus.classList.remove("show");
+
+    // Wyświetlenie modala
+    projectDetailsModal.classList.add("active");
+    pModalNotes.focus();
+}
+
+function closeProjectDetailsModal() {
+    projectDetailsModal.classList.remove("active");
+    activeProjectId = null;
+    // Odświeżamy siatkę aplikacji, aby zaktualizować status kropki (notatek) na kafelku
+    renderApps(searchInput.value);
+}
+
+// Obsługa autozapisu notatek wewnątrz modala szczegółów
+let pNotesTimeout = null;
+pModalNotes.addEventListener("input", () => {
+    if (!activeProjectId) return;
+
+    pNotesSaveStatus.innerHTML = `<i class="fa-solid fa-spinner animate-spin"></i> Zapisywanie...`;
+    pNotesSaveStatus.classList.add("show");
+
+    clearTimeout(pNotesTimeout);
+    pNotesTimeout = setTimeout(() => {
+        const textValue = pModalNotes.value;
+
+        // Aktualizujemy notatki w pamięci
+        const appIndex = apps.findIndex(a => a.id === activeProjectId);
+        if (appIndex !== -1) {
+            apps[appIndex].notes = textValue;
+            localStorage.setItem("launchpad_apps", JSON.stringify(apps));
+        }
+
+        pNotesSaveStatus.innerHTML = `<i class="fa-solid fa-circle-check"></i> Zapisano`;
+        
+        setTimeout(() => {
+            pNotesSaveStatus.classList.remove("show");
+        }, 1200);
+    }, 600);
+});
+
+// Zapobiegamy aktywacji skrótów klawiszowych w pulpicie podczas pisania notatek w modalu szczegółów
+pModalNotes.addEventListener("keydown", (e) => {
+    e.stopPropagation();
+});
+
+// GENERATOR PROMPTÓW DLA CHATGPT
+btnGeneratePrompt.addEventListener("click", () => {
+    if (!activeProjectId) return;
+
+    const app = apps.find(a => a.id === activeProjectId);
+    if (!app) return;
+
+    const notesText = pModalNotes.value.trim();
+
+    if (notesText.length === 0) {
+        showToast("Wpisz najpierw notatki/poprawki dla tego projektu! 📝");
+        return;
+    }
+
+    // Ustrukturyzowany szablon profesjonalnego promptu deweloperskiego dla AI
+    const promptText = `Jesteś wybitnym inżynierem oprogramowania i architektem IT. Zwracam się z prośbą o pomoc w wdrożeniu poprawek, naprawie błędów oraz rozwoju mojej aplikacji: ${app.name} (Adres URL projektu: ${app.url}).
+
+Oto lista uwag, błędów do naprawienia oraz planowanych funkcji z mojego notatnika projektowego:
+---
+${notesText}
+---
+
+Proszę Cię o szczegółową analizę każdego z powyższych punktów i przygotowanie:
+1. Ustrukturyzowanego planu działania krok-po-kroku (Action Plan) uporządkowanego od kwestii krytycznych po detale wizualne.
+2. Zaproponowanie gotowych, zoptymalizowanych rozwiązań technicznych, architektury kodu, wskazówek implementacyjnych oraz konkretnych fragmentów kodu w celach refaktoryzacji, które pomogą mi zaimplementować te poprawki w najprostszy i najbardziej bezawaryjny sposób.`;
+
+    // Kopiowanie do schowka
+    navigator.clipboard.writeText(promptText).then(() => {
+        showToast("Skopiowano gotowy prompt dla ChatGPT do schowka! 🤖📋");
+    }).catch(err => {
+        showToast("Nie udało się automatycznie skopiować promptu.");
+    });
+});
+
+// -------------------------------------------------------------
+// FORMULARZ DODAWANIA NOWEJ APLIKACJI (MODAL DODAWANIA)
+// -------------------------------------------------------------
+
 function openModal() {
     addAppModal.classList.add("active");
     document.getElementById("app-name").focus();
@@ -372,7 +403,7 @@ addAppForm.addEventListener("submit", (e) => {
         gradient,
         isDefault: false,
         logoType,
-        notes: "" // Domyślnie puste notatki
+        notes: "" 
     };
 
     apps.push(newApp);
@@ -388,6 +419,12 @@ btnCloseModal.addEventListener("click", closeModal);
 btnCancelModal.addEventListener("click", closeModal);
 addAppModal.addEventListener("click", (e) => {
     if (e.target === addAppModal) closeModal();
+});
+
+// Obsługa zamykania modala szczegółów projektu
+btnClosePModal.addEventListener("click", closeProjectDetailsModal);
+projectDetailsModal.addEventListener("click", (e) => {
+    if (e.target === projectDetailsModal) closeProjectDetailsModal();
 });
 
 // -------------------------------------------------------------
@@ -511,25 +548,20 @@ document.addEventListener("keydown", (e) => {
 
             if (filtered[index]) {
                 e.preventDefault();
-                showToast(`Uruchamianie: ${filtered[index].name}... 🚀`);
-                window.open(filtered[index].url, "_blank");
+                showToast(`Otwieranie panelu szczegółów: ${filtered[index].name}... 📋`);
+                openProjectDetailsModal(filtered[index].id);
             }
         }
     } else {
         if (e.key === "Escape") {
             if (addAppModal.classList.contains("active")) {
                 closeModal();
+            } else if (projectDetailsModal.classList.contains("active")) {
+                closeProjectDetailsModal();
             } else if (activeEl === searchInput) {
                 searchInput.value = "";
                 renderApps();
                 searchInput.blur();
-            } else if (activeEl.classList.contains("app-notes-textarea")) {
-                // Pozwalamy zamknąć pole notatek kafelka po naciśnięciu Esc
-                activeEl.blur();
-                const notesArea = activeEl.closest(".card-notes-area");
-                if (notesArea) {
-                    notesArea.classList.remove("active");
-                }
             }
         }
     }

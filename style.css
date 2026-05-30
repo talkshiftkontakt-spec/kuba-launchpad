@@ -576,97 +576,167 @@ h1, h2, h3, h4, .clock-widget, .logo-text h1 {
 }
 
 /* -------------------------------------------------------------
-   SEKCJA NOTATEK DO POPRAWY W KAFELKACH
+   SEKCJA SZCZEGÓŁÓW PROJEKTU (PROJECT DETAILS MODAL)
    ------------------------------------------------------------- */
-.card-notes-area {
-    margin-top: auto;
-    border-top: 1px dashed rgba(13, 148, 136, 0.12);
-    padding-top: 12px;
-    display: flex;
-    flex-direction: column;
-    width: 100%;
+.project-details-card {
+    max-width: 540px;
+    background: #ffffff;
+    border: 1px solid rgba(13, 148, 136, 0.15);
+    border-radius: 24px;
+    padding: 28px;
+    box-shadow: 0 20px 50px rgba(13, 148, 136, 0.08);
 }
 
-.notes-toggle-btn {
+.project-modal-title {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+}
+
+.project-modal-text h2 {
+    font-size: 1.35rem;
+    font-weight: 800;
+    color: #1e293b;
+    margin-bottom: 2px;
+    letter-spacing: -0.2px;
+}
+
+.p-modal-link {
     display: inline-flex;
     align-items: center;
-    gap: 6px;
-    font-size: 0.76rem;
+    gap: 5px;
+    font-size: 0.82rem;
+    color: var(--text-muted);
+    text-decoration: none;
     font-weight: 600;
-    color: var(--text-secondary);
-    cursor: pointer;
-    padding: 5px 10px;
-    border-radius: 6px;
-    background: rgba(13, 148, 136, 0.04);
-    border: 1px solid rgba(13, 148, 136, 0.05);
-    width: fit-content;
     transition: var(--transition-fast);
 }
 
-.notes-toggle-btn:hover {
-    background: rgba(13, 148, 136, 0.08);
+.p-modal-link:hover {
     color: var(--color-accent);
 }
 
-.notes-dot {
-    width: 6px;
-    height: 6px;
-    border-radius: 50%;
-    background: #f97316; /* Pomarańczowa kropka do oznaczania notatek */
-    box-shadow: 0 0 6px #f97316;
-}
-
-.notes-dropdown-content {
-    max-height: 0;
-    overflow: hidden;
-    opacity: 0;
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-/* Stan aktywny (po kliknięciu rozwinięcia) */
-.card-notes-area.active .notes-dropdown-content {
-    max-height: 140px;
-    opacity: 1;
-    margin-top: 10px;
-}
-
-.notes-dropdown-content textarea {
+/* Przycisk Uruchomienia Aplikacji */
+.btn-launch-app {
+    display: flex;
+    justify-content: center;
+    align-items: center;
     width: 100%;
-    height: 80px;
+    margin-top: 8px;
+    margin-bottom: 24px;
+    padding: 13px;
+    font-size: 1rem;
+    font-weight: 700;
+    text-decoration: none;
+    border-radius: 12px;
+    background: var(--color-accent);
+    color: #ffffff;
+    box-shadow: 0 4px 15px rgba(13, 148, 136, 0.2);
+    transition: var(--transition-normal);
+}
+
+.btn-launch-app:hover {
+    background: #0f766e;
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(13, 148, 136, 0.35);
+}
+
+/* Sekcja Notatek w Modalu */
+.project-notes-section {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-bottom: 24px;
+}
+
+.notes-section-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.notes-section-header label {
+    font-size: 0.84rem;
+    font-weight: 700;
+    color: var(--text-secondary);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+#p-notes-save-status {
+    font-size: 0.72rem;
+    color: #10b981;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    opacity: 0;
+    transition: opacity var(--transition-normal);
+}
+
+#p-notes-save-status.show {
+    opacity: 1;
+}
+
+.project-notes-section textarea {
+    width: 100%;
+    height: 150px;
     background: #fcfdfd;
     border: 1px solid rgba(13, 148, 136, 0.15);
-    border-radius: 8px;
-    padding: 8px 10px;
+    border-radius: 12px;
+    padding: 12px 14px;
     color: var(--text-primary);
     font-family: inherit;
-    font-size: 0.8rem;
-    line-height: 1.4;
+    font-size: 0.88rem;
+    line-height: 1.5;
     resize: none;
     transition: var(--transition-normal);
 }
 
-.notes-dropdown-content textarea:focus {
+.project-notes-section textarea:focus {
     outline: none;
     border-color: var(--color-accent);
     background: #ffffff;
-    box-shadow: 0 0 0 2px rgba(13, 148, 136, 0.06);
+    box-shadow: 0 0 0 3px rgba(13, 148, 136, 0.06);
 }
 
-.notes-save-indicator {
-    font-size: 0.68rem;
-    color: #10b981;
+/* Przyciski Promptera AI */
+.ai-prompter-actions {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 12px;
+    border-top: 1px solid rgba(13, 148, 136, 0.08);
+    padding-top: 20px;
+}
+
+.btn-ai-prompt {
+    background: rgba(13, 148, 136, 0.05);
+    border: 1px solid rgba(13, 148, 136, 0.18);
+    color: var(--color-accent);
     display: flex;
     align-items: center;
-    gap: 4px;
-    justify-content: flex-end;
-    margin-top: 4px;
-    opacity: 0;
-    transition: opacity var(--transition-fast);
-    font-weight: 600;
+    justify-content: center;
+    gap: 8px;
+    font-weight: 700;
+    box-shadow: 0 2px 5px rgba(13, 148, 136, 0.02);
 }
 
-.notes-save-indicator.show {
-    opacity: 1;
+.btn-ai-prompt:hover {
+    background: var(--color-accent);
+    color: #ffffff;
+    border-color: var(--color-accent);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 10px rgba(13, 148, 136, 0.15);
+}
+
+.btn-chatgpt {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    text-decoration: none;
+    font-weight: 600;
 }
 
 /* -------------------------------------------------------------

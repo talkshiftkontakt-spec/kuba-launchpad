@@ -184,6 +184,57 @@
         </div>
     </div>
 
+    <!-- PROJECT DETAILS MODAL -->
+    <div class="modal-overlay" id="project-details-modal">
+        <div class="modal-card project-details-card">
+            <div class="modal-header">
+                <div class="project-modal-title">
+                    <div class="app-icon-container" id="p-modal-icon">
+                        <!-- Loaded dynamically -->
+                    </div>
+                    <div class="project-modal-text">
+                        <h2 id="p-modal-name">Nazwa Aplikacji</h2>
+                        <a href="#" target="_blank" id="p-modal-url" class="p-modal-link">
+                            <i class="fa-solid fa-link" style="font-size: 0.7rem; opacity: 0.7;"></i>
+                            <span>example.com</span>
+                        </a>
+                    </div>
+                </div>
+                <button class="modal-close" id="btn-close-p-modal"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            
+            <div class="modal-body">
+                <!-- Launch shortcut button -->
+                <a href="#" target="_blank" class="btn btn-primary btn-launch-app" id="btn-p-modal-launch">
+                    Uruchom Aplikację <i class="fa-solid fa-rocket" style="margin-left: 6px;"></i>
+                </a>
+                
+                <!-- Notes textarea -->
+                <div class="project-notes-section">
+                    <div class="notes-section-header">
+                        <label for="p-modal-notes">
+                            <i class="fa-regular fa-clipboard text-accent"></i> Lista poprawek do zrobienia (TODO)
+                        </label>
+                        <span class="save-status" id="p-notes-save-status">
+                            <i class="fa-solid fa-circle-check"></i> Zapisano
+                        </span>
+                    </div>
+                    <textarea id="p-modal-notes" placeholder="Wpisz błędy do poprawienia, nowe pomysły lub zadania do zrobienia w tym projekcie... Wszystko zapisuje się automatycznie!"></textarea>
+                </div>
+                
+                <!-- ChatGPT prompt actions -->
+                <div class="ai-prompter-actions">
+                    <button class="btn btn-secondary btn-ai-prompt" id="btn-generate-prompt" title="Generuje ustrukturyzowany prompt z Twoich notatek i kopiuje do schowka">
+                        <i class="fa-solid fa-robot"></i> Generuj Prompt ChatGPT
+                    </button>
+                    <a href="https://chatgpt.com/" target="_blank" class="btn btn-secondary btn-chatgpt" title="Otwórz ChatGPT w nowej karcie">
+                        <i class="fa-solid fa-comment-dots"></i> Otwórz ChatGPT
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Notification Toast -->
     <div class="toast" id="toast">
         <i class="fa-solid fa-info-circle toast-icon"></i>
